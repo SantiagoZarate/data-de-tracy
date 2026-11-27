@@ -2,7 +2,7 @@
 
 El procesamiento de un Episodio (transcripción con Supadata, separación en Historias con LLM, extracción de metadatos, embeddings y guardado) es una función común que no depende de dónde corre.
 
-- **Ingesta continua**: una tarea programada de Trigger.dev revisa el feed RSS del canal los domingos, en horario de Buenos Aires, y repite el chequeo un par de veces hasta el martes. Cada video nuevo que siga el formato de título dispara una tarea por Episodio, con sus propios reintentos.
+- **Ingesta continua**: una tarea programada de Trigger.dev revisa el feed RSS del canal los domingos, en horario de Buenos Aires, y repite el chequeo un par de veces hasta el martes. Cada video nuevo que sea un Episodio (ver [`GLOSSARY.md`](../../GLOSSARY.md)) dispara una tarea por Episodio, con sus propios reintentos.
 - **Backfill**: los ~300 episodios existentes se procesan una sola vez, con un script local que llama a la misma función. No usa Trigger.dev.
 
 La app en Vercel solo lee la base y atiende el chatbot. No expone endpoints de ingesta ni de administración.

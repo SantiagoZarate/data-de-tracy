@@ -5,7 +5,7 @@
 **Anecdotas de Tracy** es un podcast argentino en el que un grupo de 4 personas lee historias enviadas por sus seguidores. El podcast se hace desde Argentina, pero las historias llegan de todo el mundo.
 
 - ~300 episodios publicados en **YouTube** y **Spotify**.
-- Cada episodio tiene una historia principal. Algunos traen además una segunda historia, el **"Bonus Track"**.
+- Cada episodio tiene una historia principal. Algunos traen además una segunda historia, el **"Bonus Track"** (muy rara vez, más de una).
 - Todo el contenido está en español.
 
 ## El problema
@@ -26,7 +26,7 @@ La pieza central es un **chatbot**: el usuario describe en lenguaje natural los 
 - El formato exacto del resultado (resumen, link, timestamp, reproductor, etc.) está por definir (ver Preguntas abiertas).
 
 ### 2. Exploración y filtros
-- Filtrar historias por **país** de origen de la historia.
+- Filtrar historias por **país** (dónde ocurre o de dónde es quien la envió).
 - Filtrar por **temática** (ej.: terror, amor, bizarro, familia…).
 - Filtrar por **tipo**: historia principal o Bonus Track.
 - Otros filtros a definir más adelante.
@@ -39,7 +39,7 @@ La pieza central es un **chatbot**: el usuario describe en lenguaje natural los 
 
 ## Unidad principal: la historia
 
-La búsqueda y los filtros trabajan sobre **historias**, no sobre episodios: un episodio puede tener 1 o 2 historias, y lo que el usuario recuerda es la historia.
+La búsqueda y los filtros trabajan sobre **historias**, no sobre episodios: un episodio casi siempre tiene 1 o 2 historias (rara vez más), y lo que el usuario recuerda es la historia.
 
 ## Público y acceso
 
@@ -67,9 +67,9 @@ Los términos están definidos en [`GLOSSARY.md`](../GLOSSARY.md). Las decisione
 - **Chatbot**: conversación de varios mensajes que no se guarda. Muestra Candidatas desde el primer mensaje y repregunta solo si hay ambigüedad. Si ninguna coincide bien, lo dice, hace una pregunta concreta y muestra las Candidatas débiles como "menos probables".
 - **Cada Candidata muestra**: título, número de episodio, tipo, país, temáticas, un resumen de 2–3 líneas, por qué coincide y un link a YouTube en el minuto donde empieza la Historia. No hay reproductor embebido.
 - **Exploración**: una grilla tipo YouTube con todas las Historias. Cada tarjeta lleva la miniatura del episodio, el número, el título, la bandera del país, las temáticas y, si corresponde, el badge de Bonus Track. Los filtros (país, temática, tipo) y un buscador por palabras van en la URL, con paginación, de más nuevas a más viejas. Cada Historia tiene su página de detalle. La exploración no usa LLM, así que sigue funcionando cuando se agota el presupuesto del chatbot.
-- **Títulos**: se muestran tal cual se publicaron. Del título "Anécdota #N - TÍTULO" se sacan el número y el título del Episodio. Los videos del canal que no siguen ese formato no son Episodios. Los Bonus Tracks no tienen título oficial: lo genera el LLM, en el mismo estilo.
-- **Separación de historias**: el LLM lee la transcripción con timestamps y marca dónde empieza y termina cada Historia. El "¡Bonus Track!" que grita un conductor marca el corte. Se valida a mano con ~20 episodios antes del backfill.
-- **Metadatos**: los extrae el LLM y se publican sin revisión previa. El admin puede hacer Correcciones manuales, que re-procesar nunca pisa. El país se guarda como código ISO, o "desconocido".
+- **Títulos**: el título del Episodio se muestra tal cual se publicó. Se sacan número y título de los dos formatos conocidos, "Anécdota #N - TÍTULO" y "TÍTULO- Anécdotas #N". Si un título no matchea ninguno, Jev (TypeSafe) decide si es un Episodio antes de bajar la transcripción; si duda, el video va a revisión manual ([investigación](./investigacion/typesafe.md)). Cada Historia lleva un título propio que genera el LLM, porque el del Episodio a veces describe el Bonus Track o ninguna Historia ([estructura de un Episodio](./estructura-episodio.md)).
+- **Separación de historias**: el LLM lee la transcripción con timestamps y marca dónde empieza y termina cada Historia. Cada Historia es una carta de un oyente: empieza con un saludo a los conductores y termina con la despedida o el final del relato. El "¡Bonus Track!" ayuda a ubicar el corte, pero en la transcripción puede faltar o salir deformado ([estructura de un Episodio](./estructura-episodio.md)). Se valida a mano con ~20 episodios antes del backfill.
+- **Metadatos**: los extrae el LLM y se publican sin revisión previa. El admin puede hacer Correcciones manuales, que re-procesar nunca pisa. Cada Historia guarda dos países como código ISO: dónde ocurre y de dónde es quien la envió. Los dos pueden quedar vacíos, porque no siempre se mencionan.
 - **Temáticas**: lista fija, de 1 a 3 por Historia: Terror, Paranormal, Amor, Desamor, Familia, Amistad, Bizarro, Humor, Crimen, Trabajo, Viajes, Escuela, Famosos, Drogas, Triste, Polémica, Inmoral. Se ajusta después de clasificar una muestra.
 - **Transcripciones**: solo Supadata. Si un episodio en particular sale mal, se evalúa transcribir el audio, pero eso no se construye ahora.
 - **Spotify**: fuera de la v1. Solo se enlaza a YouTube.

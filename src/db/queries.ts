@@ -1,16 +1,30 @@
 import type { Db } from "./index.ts";
+import { episodes, stories } from "./schema.ts";
 
-/** Todos los Episodios, del más nuevo al más viejo, con sus Historias en orden y sus Temáticas. */
-export function listEpisodesWithStories(db: Db) {
-  return db.query.episodes.findMany({
-    orderBy: { number: "desc" },
-    with: {
-      stories: {
-        orderBy: { position: "asc" },
-        with: { themes: { columns: { theme: true } } },
-      },
+export async function getCatalogCounts(db: Db) {
+  const [storyCount, episodeCount] = await Promise.all([db.$count(stories), db.$count(episodes)]);
+  return { storyCount, episodeCount };
+}
+
+export function listStoriesPage(db: Db, page: number, pageSize: number) {
+  return db.query.stories.findMany({
+    columns: {
+      id: true,
+      type: true,
+      startSeconds: true,
+      title: true,
+      summary: true,
+      storyCountry: true,
+      senderCountry: true,
     },
+    orderBy: { episode: { number: "desc" }, episodeVideoId: "asc", position: "asc" },
+    with: {
+      episode: { columns: { number: true, videoId: true } },
+      themes: { columns: { theme: true } },
+    },
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
   });
 }
 
-export type EpisodeWithStories = Awaited<ReturnType<typeof listEpisodesWithStories>>[number];
+export type CatalogStory = Awaited<ReturnType<typeof listStoriesPage>>[number];

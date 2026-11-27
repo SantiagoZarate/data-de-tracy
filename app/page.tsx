@@ -1,13 +1,15 @@
 import { cacheLife } from "next/cache";
-import { listEpisodesWithStories, type EpisodeWithStories } from "@/src/db/queries.ts";
+import Image from "next/image";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { getCatalogCounts, listStoriesPage, type CatalogStory } from "@/src/db/queries.ts";
 import { db } from "@/src/db/server.ts";
+import { StoryPagination } from "@/src/ui/story-pagination.tsx";
+import { storyPageHref } from "@/src/ui/story-page-url.ts";
 import { ThemeSwitcher } from "@/src/ui/theme-switcher.tsx";
 
+const PAGE_SIZE = 12;
 const countryNames = new Intl.DisplayNames(["es"], { type: "region" });
-
-type StoryWithEpisode = EpisodeWithStories["stories"][number] & {
-  episode: Omit<EpisodeWithStories, "stories">;
-};
 
 function youtubeUrl(videoId: string, startSeconds?: number) {
   const url = new URL("https://www.youtube.com/watch");
@@ -16,42 +18,69 @@ function youtubeUrl(videoId: string, startSeconds?: number) {
   return url.toString();
 }
 
-export default async function Home() {
+async function getCounts() {
   "use cache";
-  // La ingesta corre una vez por semana, fuera de Vercel.
   cacheLife("hours");
+  return getCatalogCounts(db);
+}
 
-  const episodes = await listEpisodesWithStories(db);
-  const stories: StoryWithEpisode[] = episodes.flatMap(({ stories, ...episode }) =>
-    stories.map((story) => ({ ...story, episode })),
-  );
+async function getStories(page: number) {
+  "use cache";
+  cacheLife("hours");
+  return listStoriesPage(db, page, PAGE_SIZE);
+}
 
+export default function Home({ searchParams }: PageProps<"/">) {
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-12">
       <header className="mb-10 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Historias</h1>
-          <p className="mt-2 text-muted-foreground">
-            {stories.length} Historias de {episodes.length} Episodios.
-          </p>
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">Historias</h1>
         <ThemeSwitcher />
       </header>
 
-      {stories.length === 0 ? (
-        <p>Todavía no hay Historias en la base.</p>
-      ) : (
-        <ol className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {stories.map((story) => (
-            <StoryCard key={story.id} story={story} />
-          ))}
-        </ol>
-      )}
-
-      <footer className="mt-16 border-t pt-6 text-sm text-muted-foreground">
-        Sitio hecho por fans. No es oficial ni está asociado al podcast.
-      </footer>
+      <Suspense fallback={<p className="text-muted-foreground">Cargando Historias…</p>}>
+        <StoryGrid searchParams={searchParams} />
+      </Suspense>
     </main>
+  );
+}
+
+async function StoryGrid({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
+  const { pagina } = await searchParams;
+  const page = typeof pagina === "string" ? Number(pagina) : 1;
+  if (
+    pagina !== undefined &&
+    (String(page) !== pagina || !Number.isSafeInteger(page) || page < 1)
+  ) {
+    redirect(storyPageHref(1));
+  }
+
+  const { storyCount, episodeCount } = await getCounts();
+  const pageCount = Math.max(1, Math.ceil(storyCount / PAGE_SIZE));
+  if (page > pageCount) redirect(storyPageHref(pageCount));
+
+  const stories = await getStories(page);
+  if (stories.length === 0) {
+    if (page > 1) redirect(storyPageHref(1));
+    return <p>Todavía no hay Historias en la base.</p>;
+  }
+
+  return (
+    <>
+      <p className="mb-4 text-sm text-muted-foreground">
+        {storyCount} {storyCount === 1 ? "Historia" : "Historias"} de {episodeCount}{" "}
+        {episodeCount === 1 ? "Episodio" : "Episodios"}.
+      </p>
+      <ol
+        start={(page - 1) * PAGE_SIZE + 1}
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      >
+        {stories.map((story) => (
+          <StoryCard key={story.id} story={story} />
+        ))}
+      </ol>
+      {pageCount > 1 && <StoryPagination page={page} pageCount={pageCount} />}
+    </>
   );
 }
 
@@ -77,13 +106,20 @@ function Flag({ icon, label, code }: { icon: string; label: string; code: string
   );
 }
 
-function StoryCard({ story }: { story: StoryWithEpisode }) {
+function StoryCard({ story }: { story: CatalogStory }) {
+  const { number, videoId } = story.episode;
+
   return (
-    <li className="flex flex-col overflow-hidden rounded-lg border bg-card text-card-foreground">
-      <div className="relative flex aspect-video items-center justify-center bg-muted">
-        <span aria-hidden="true" className="text-2xl font-semibold text-muted-foreground">
-          #{story.episode.number}
-        </span>
+    <li className="flex flex-col rounded-lg p-3 hover:bg-muted/70 has-focus-visible:bg-muted/70">
+      <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+        <Image
+          src={`https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`}
+          alt=""
+          width={320}
+          height={180}
+          unoptimized
+          className="h-full w-full object-cover"
+        />
         {(story.storyCountry || story.senderCountry) && (
           <div className="absolute bottom-2 left-2 flex gap-1.5">
             {story.storyCountry && <Flag icon="📍" label="Ocurre en" code={story.storyCountry} />}
@@ -99,15 +135,15 @@ function StoryCard({ story }: { story: StoryWithEpisode }) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <h2 className="text-sm font-semibold">
-          <a
-            href={youtubeUrl(story.episode.videoId, story.startSeconds)}
-            className="hover:underline"
-          >
-            Episodio #{story.episode.number} · {story.episode.title}
-          </a>
-        </h2>
+      <div className="flex flex-1 flex-col gap-3 pt-3">
+        <div>
+          <h2 className="text-sm font-semibold">
+            <a href={youtubeUrl(videoId, story.startSeconds)} className="hover:underline">
+              {story.title}
+            </a>
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">Episodio #{number}</p>
+        </div>
         <p className="line-clamp-4 text-sm">{story.summary}</p>
         <ul aria-label="Temáticas" className="mt-auto flex flex-wrap gap-1.5">
           {story.themes.map(({ theme }) => (

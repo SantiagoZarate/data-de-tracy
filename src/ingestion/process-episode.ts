@@ -14,16 +14,16 @@ export interface ProcessEpisodeDeps {
   isEpisode?: (videoTitle: string) => Promise<EpisodeDecision>;
 }
 
+type KnownEpisode = EpisodeTitle & {
+  videoId: string;
+  /** El título no tenía formato conocido: revisar número y título a mano. */
+  needsTitleReview: boolean;
+};
+
+type ProcessedEpisode = KnownEpisode & { status: "processed"; stories: Story[] };
+
 export type ProcessingResult =
-  | {
-      status: "processed";
-      videoId: string;
-      number: number;
-      title: string;
-      /** El título no tenía formato conocido: revisar número y título a mano. */
-      needsTitleReview: boolean;
-      stories: Story[];
-    }
+  | ProcessedEpisode
   | { status: "discarded"; videoId: string; reason: string }
   /** No se pudo decidir si es un Episodio: revisar a mano. No se bajó la transcripción. */
   | { status: "review"; videoId: string; reason: string };
@@ -63,14 +63,22 @@ export async function processEpisode(
     }
   }
 
+  return processKnownEpisode({ videoId, ...episode, needsTitleReview }, deps);
+}
+
+/** Separa y enriquece las Historias sin volver a pedir el título a Supadata. */
+export async function processKnownEpisode(
+  { videoId, number, title, needsTitleReview }: KnownEpisode,
+  deps: Pick<ProcessEpisodeDeps, "supadataApiKey" | "model">,
+): Promise<ProcessedEpisode> {
   const segments = await getTranscript(deps.supadataApiKey, videoId);
   const stories = await splitStories({
     model: deps.model,
-    episodeTitle: episode.title,
+    episodeTitle: title,
     segments,
   });
 
-  return { status: "processed", videoId, ...episode, needsTitleReview, stories };
+  return { status: "processed", videoId, number, title, needsTitleReview, stories };
 }
 
 /** Si el clasificador falta o falla, el video va a revisión: nunca se lo trata como Episodio. */

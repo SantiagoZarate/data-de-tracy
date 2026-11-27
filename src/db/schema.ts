@@ -53,6 +53,16 @@ export const stories = sqliteTable(
     storyCountry: text("story_country"),
     /** Código ISO 3166-1 alfa-2 de dónde es quien la envió; null si no se menciona. */
     senderCountry: text("sender_country"),
+    /** Marcas de Corrección manual: al re-procesar se conserva el valor actual del campo. */
+    titleCorrected: integer("title_corrected", { mode: "boolean" }).notNull().default(false),
+    summaryCorrected: integer("summary_corrected", { mode: "boolean" }).notNull().default(false),
+    storyCountryCorrected: integer("story_country_corrected", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    senderCountryCorrected: integer("sender_country_corrected", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    themesCorrected: integer("themes_corrected", { mode: "boolean" }).notNull().default(false),
   },
   (t) => [
     unique("stories_episode_position_unq").on(t.episodeVideoId, t.position),

@@ -8,7 +8,7 @@ import {
   text,
   unique,
 } from "drizzle-orm/sqlite-core";
-import { STORY_TYPES, THEMES } from "../ingestion/stories.ts";
+import { STORY_TYPES, THEMES } from "../story-metadata.ts";
 
 /** Lista SQL de literales para un CHECK ... IN (...). Los valores son constantes del código, no input. */
 const sqlList = (values: readonly string[]) =>

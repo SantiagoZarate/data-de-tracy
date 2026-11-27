@@ -26,6 +26,9 @@ importers:
       drizzle-orm:
         specifier: 1.0.0-rc.6
         version: 1.0.0-rc.6(@libsql/client@0.18.0)(zod@4.6.7)
+      glimm:
+        specifier: ^0.4.2
+        version: 0.4.2(next@16.4.6(@types/node@26.6.11)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       next:
         specifier: 16.4.6
         version: 16.4.6(@types/node@26.6.11)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1133,6 +1136,21 @@ packages:
     resolution: {integrity: sha512-XjH1AECxf0giL2V1aU8vKyRR2ppRUb5c0EvT7zuJTokQ74bNo52zOtghqdWIqrhUD79fo3x0WfKZdOqxF6LG1Q==}
     engines: {node: '>=18'}
 
+  glimm@0.4.2:
+    resolution: {integrity: sha512-G4/RwaFMkujp9d2VIrxx0CGugJ9EG52NVtHelXIZz1cGx3UnX4Hj9dO/qWoUWfiKOWldT8hzRzx5QhxHh8gtxw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      next: '>=14'
+      react: '>=18'
+      react-dom: '>=18'
+    peerDependenciesMeta:
+      next:
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
   graceful-fs@4.2.12:
     resolution: {integrity: sha512-iuyGF2E4oafQfPsRrG2wtY2ILupMhvtdrhzrxB+0VcjsPpSPttpfYdjnGFGsTi5MaJFjI1jOKHPQ6UTbTj9TAw==}
 
@@ -2061,6 +2079,12 @@ snapshots:
   eventsource-parser@3.1.1: {}
 
   get-east-asian-width@1.7.0: {}
+
+  glimm@0.4.2(next@16.4.6(@types/node@26.6.11)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    optionalDependencies:
+      next: 16.4.6(@types/node@26.6.11)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   graceful-fs@4.2.12: {}
 

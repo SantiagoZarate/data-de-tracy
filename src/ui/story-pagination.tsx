@@ -9,16 +9,16 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@ui-sdk/react/pagination";
-import Link from "next/link";
+import { TransitionLink } from "glimm/next";
 import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
 import { storyPageHref } from "./story-page-url.ts";
 
 function PageLink({ href, children, ...props }: ComponentProps<"a">) {
   return href ? (
-    <Link href={href} {...props}>
+    <TransitionLink href={href} {...props}>
       {children}
-    </Link>
+    </TransitionLink>
   ) : (
     <a {...props}>{children}</a>
   );

@@ -10,18 +10,22 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## ui-sdk
 
-Antes de usar ui-sdk, seguí la skill `ui-sdk` si está instalada y leé `node_modules/@ui-sdk/react/docs/llms.txt`. Para construir un componente nuevo, además buscá por encabezado en `node_modules/@ui-sdk/react/docs/core.md` y leé `rendering.md`, que está al lado.
+Before using ui-sdk, follow the `ui-sdk` skill if installed and read `node_modules/@ui-sdk/react/docs/llms.txt`. When building a custom primitive, also find the relevant section in `node_modules/@ui-sdk/react/docs/core.md` and read `rendering.md` in the same directory.
 
-## Lint y formato
+## Design
 
-El linter es oxlint (`pnpm lint`, `pnpm lint:fix`) y el formateador es oxfmt (`pnpm format`, `pnpm format:check`). No hay ESLint ni Prettier.
+Read [design.md](design.md) before adding or changing user-facing UI, shared styles, or theme tokens.
 
-## Idioma
+## Lint and formatting
 
-- **En inglés**: todo lo que es código. Funciones, tipos, variables, constantes, campos, nombres de archivos y carpetas, scripts de `package.json`, y tablas y columnas de la base.
-- **En español**: las URLs del sitio, porque las ve el usuario (las carpetas de rutas en `app/`, como `app/historias/[id]`); el texto que ve el usuario en el frontend, los mensajes de la CLI, el prompt del LLM, los comentarios, la documentación, los commits y los PRs.
-- Los valores guardados que se muestran en la interfaz siguen en español, porque salen del [glosario](GLOSSARY.md): el tipo de Historia (`principal`, `bonus`) y las Temáticas.
+Use oxlint (`pnpm lint`, `pnpm lint:fix`) and oxfmt (`pnpm format`, `pnpm format:check`). The project does not use ESLint or Prettier.
 
-## Base de datos local
+## Language
 
-`pnpm db:migrate` crea o actualiza `.datos/local.db`, y `pnpm save-results .datos/muestra/*.json` la llena con la muestra. Sin `TURSO_DATABASE_URL`, la app y los scripts leen ese archivo directo. Para probar por HTTP, como en producción, corré `pnpm db:dev` (un servidor de Turso sobre el mismo archivo) y poné `TURSO_DATABASE_URL=http://127.0.0.1:8080` en `.env.local`.
+- **English:** code identifiers, source file and directory names, `package.json` scripts, database tables and columns, `AGENTS.md`, and `design.md`.
+- **Spanish:** site URLs (including route directories such as `app/historias/[id]`), UI copy, CLI messages, LLM prompts, comments, other project documentation, commits, and pull requests.
+- Keep stored values shown in the UI in Spanish, using the [glossary](GLOSSARY.md) for story types (`principal`, `bonus`) and themes.
+
+## Local database
+
+`pnpm db:migrate` creates or updates `.datos/local.db`, and `pnpm save-results .datos/muestra/*.json` loads the sample data. Without `TURSO_DATABASE_URL`, the app and scripts read the file directly. To test over HTTP as in production, run `pnpm db:dev` to start a Turso server on the same file, then set `TURSO_DATABASE_URL=http://127.0.0.1:8080` in `.env.local`.

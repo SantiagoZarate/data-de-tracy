@@ -35,21 +35,20 @@
  */
 :root,
 [data-color-scheme] {
-  --radius: 0.625rem;
-  --background: light-dark(oklch(1 0 0), oklch(0.145 0 0));
-  --foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
-  --card: light-dark(oklch(1 0 0), oklch(0.185 0 0));
-  --card-foreground: var(--foreground);
-  --muted: light-dark(oklch(0.967 0 0), oklch(0.226 0 0));
-  --muted-foreground: light-dark(oklch(0.5 0 0), oklch(0.72 0 0));
-  --primary: light-dark(oklch(0.205 0 0), oklch(0.922 0 0));
-  --primary-foreground: light-dark(oklch(0.985 0 0), oklch(0.205 0 0));
+  --radius: 1rem;
+  --background: light-dark(#f5f5f7, #141416);
+  --foreground: light-dark(#1d1d1f, #f5f5f7);
+  --card: light-dark(#fff, #202023);
+  --muted: light-dark(#eaeaec, #2c2c30);
+  --muted-foreground: light-dark(#555561, #b3b3bd);
+  --primary: light-dark(#0064c8, #5aacff);
+  --primary-foreground: light-dark(#fff, #101419);
   --highlight: light-dark(oklch(0.962 0.059 95.6), oklch(0.414 0.112 45.9));
   --highlight-foreground: light-dark(oklch(0.414 0.112 45.9), oklch(0.962 0.059 95.6));
   --destructive: light-dark(oklch(0.552 0.224 25.5), oklch(0.712 0.181 22.8));
-  --border: light-dark(oklch(0.919 0 0), oklch(0.285 0 0));
-  --input: light-dark(oklch(0.64 0 0), oklch(0.52 0 0));
-  --ring: light-dark(oklch(0.55 0 0), oklch(0.62 0 0));
+  --border: light-dark(#dedee3, #38383d);
+  --input: light-dark(#83838b, #767680);
+  --ring: var(--primary);
 
   /* Los componentes de ui-sdk usan los mismos tokens. */
   --ui-background: var(--background);
@@ -61,6 +60,7 @@
   --ui-destructive: var(--destructive);
   --ui-border: var(--border);
   --ui-input: var(--input);
+  --ui-ring: var(--ring);
   --ui-ring-border: var(--ring);
   --ui-radius: calc(var(--radius) * 0.8);
   --ui-font-sans: var(--font-geist-sans);
@@ -71,7 +71,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);
@@ -97,5 +96,152 @@
 
   body {
     @apply bg-background font-sans text-foreground;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-7xl px-6 py-8 sm:px-8 sm:py-12;
+  }
+
+  .page-header {
+    @apply mb-8 flex flex-wrap items-center justify-between gap-4 sm:mb-10;
+  }
+
+  .page-title {
+    @apply text-3xl font-semibold tracking-tight text-balance sm:text-4xl;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold tracking-tight;
+  }
+
+  .metadata {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .surface {
+    @apply rounded-xl border bg-card;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium;
+  }
+
+  .badge[data-variant="highlight"] {
+    @apply bg-highlight text-highlight-foreground;
+  }
+
+  a.text-link {
+    @apply font-medium text-primary underline underline-offset-4 decoration-current;
+  }
+
+  a.card-link {
+    @apply rounded-xl text-foreground no-underline;
+
+    @media (hover: hover) {
+      &:hover {
+        background: color-mix(in oklab, var(--card) 65%, var(--muted));
+      }
+    }
+  }
+
+  .card-link:focus-visible,
+  .text-link:focus-visible,
+  [data-slot="button"]:focus-visible {
+    @apply outline-2 outline-offset-3 outline-ring;
+  }
+
+  [data-slot="button"]:not(.player-trigger),
+  .player-trigger-label {
+    @apply inline-flex h-auto min-h-11 items-center justify-center gap-2 rounded-full border border-transparent px-4 py-2.5 text-sm leading-snug font-medium whitespace-normal no-underline;
+  }
+
+  [data-slot="button"]:not(.player-trigger, [data-variant]) {
+    @apply bg-muted text-foreground;
+  }
+
+  [data-slot="button"][data-variant="solid"]:not(.player-trigger),
+  .player-trigger-label {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  [data-slot="button"][data-pending] {
+    cursor: progress;
+  }
+
+  .player-trigger {
+    @apply absolute inset-0 grid size-full place-items-center rounded-xl border-0 bg-transparent p-0;
+
+    &:focus-visible {
+      outline-offset: -4px;
+    }
+  }
+
+  @media (hover: hover) {
+    [data-slot="button"]:not(
+        .player-trigger,
+        [data-variant],
+        [data-disabled],
+        [data-pending]
+      ):hover {
+      background: color-mix(in oklab, var(--muted) 94%, var(--foreground));
+    }
+
+    [data-slot="button"][data-variant="solid"]:not(
+        .player-trigger,
+        [data-disabled],
+        [data-pending]
+      ):hover,
+    .player-trigger:hover .player-trigger-label {
+      background: color-mix(in oklab, var(--primary) 93%, black);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-slot="button"]:not(.player-trigger),
+    .player-trigger-label {
+      transition: scale 140ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    [data-slot="button"]:not(.player-trigger, [data-disabled], [data-pending]):active,
+    .player-trigger:active .player-trigger-label {
+      scale: 0.97;
+    }
+  }
+
+  [data-slot="segmented-control"] {
+    @apply rounded-full border-transparent p-1;
+  }
+
+  [data-slot="segmented-control-item"],
+  [data-slot="segmented-control-indicator"] {
+    @apply rounded-full;
+  }
+
+  [data-slot="segmented-control-item"] {
+    @apply h-9;
+  }
+
+  [data-slot="segmented-control-indicator"] {
+    @apply border-border bg-card shadow-xs;
+  }
+
+  :is(
+    [data-slot="pagination-link"],
+    [data-slot="pagination-next"],
+    [data-slot="pagination-previous"]
+  ) {
+    @apply size-11 rounded-full border-transparent bg-card p-0;
+
+    @media (hover: hover) {
+      &:hover:not([data-disabled], [data-current]) {
+        @apply bg-muted;
+      }
+    }
+  }
+
+  [data-slot="pagination-link"][data-current] {
+    @apply border-primary bg-primary text-primary-foreground;
   }
 }

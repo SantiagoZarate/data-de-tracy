@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 import type { Db } from "./index.ts";
-import { getCatalogCounts, listStoriesPage } from "./queries.ts";
+import { getCatalogCounts, getStoryById, listStoriesPage } from "./queries.ts";
 import { saveEpisode } from "./save-episode.ts";
 import { createTestDb } from "./test-db.ts";
 
@@ -83,4 +83,33 @@ test("pagina Historias del Episodio más nuevo al más viejo, en orden dentro de
   assert.equal(bonus.summary, "Bonus del #59");
   assert.deepEqual(bonus.themes.map(({ theme }) => theme).sort(), ["Humor", "Terror"]);
   assert.deepEqual(await listStoriesPage(db, 3, 2), []);
+});
+
+test("busca una Historia por su ID y devuelve sus datos públicos", async () => {
+  await saveEpisode(db, {
+    status: "processed",
+    videoId: "nuevo000000",
+    number: 307,
+    title: "NUEVO",
+    needsTitleReview: false,
+    stories: [
+      { ...story, type: "principal", title: "PRIMERA", themes: ["Amistad"] },
+      { ...story, type: "bonus", title: "BONUS", startSeconds: 15, themes: ["Humor"] },
+    ],
+  });
+
+  const [first, bonus] = await listStoriesPage(db, 1, 2);
+  assert.notEqual(first.id, bonus.id);
+  assert.deepEqual(await getStoryById(db, bonus.id), {
+    id: bonus.id,
+    type: "bonus",
+    startSeconds: 15,
+    title: "BONUS",
+    summary: "Resumen",
+    storyCountry: null,
+    senderCountry: "MX",
+    episode: { number: 307, videoId: "nuevo000000" },
+    themes: [{ theme: "Humor" }],
+  });
+  assert.equal(await getStoryById(db, 999), undefined);
 });

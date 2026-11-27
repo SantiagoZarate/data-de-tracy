@@ -10,14 +10,24 @@ const UMBRAL_NO = 0.3;
 
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+export function decidir(puntaje: number): DecisionEpisodio {
+  return puntaje > UMBRAL_SI ? "si" : puntaje < UMBRAL_NO ? "no" : "revisar";
+}
+
 export function crearClasificadorJev(apiKey: string) {
-  return async function esEpisodio(tituloVideo: string): Promise<DecisionEpisodio> {
+  const puntuar = crearPuntuadorJev(apiKey);
+  return async (tituloVideo: string): Promise<DecisionEpisodio> => decidir(await puntuar(tituloVideo));
+}
+
+/** Devuelve el noul crudo (0–1): qué tan seguro está Jev de que el título es de un Episodio. */
+export function crearPuntuadorJev(apiKey: string) {
+  return async function puntuarEpisodio(tituloVideo: string): Promise<number> {
     const body = JSON.stringify({
       model: MODELO,
       state: {
         video: { channel: "Anécdotas de Tracy", title: tituloVideo },
         podcast_episode_format:
-          "An Argentine Spanish-language podcast. Each episode is a numbered full-length upload (e.g. 'Anécdota #307 - TITLE') where the hosts read one or more stories sent in by listeners.",
+          "An Argentine Spanish-language podcast. Each episode is a numbered full-length upload where the hosts read one or more stories sent in by listeners. Episode titles contain the episode number and a story title, in formats like 'Anécdota #307 - TITLE' (current) or 'Title- Anécdotas #59' (older episodes).",
       },
       questions: {
         is_episode: {
@@ -45,8 +55,7 @@ export function crearClasificadorJev(apiKey: string) {
       if (!res.ok) throw new Error(`TypeSafe ${res.status}: ${await res.text()}`);
 
       const { answers } = (await res.json()) as { answers: { is_episode: { noul: number } } };
-      const valor = answers.is_episode.noul;
-      return valor > UMBRAL_SI ? "si" : valor < UMBRAL_NO ? "no" : "revisar";
+      return answers.is_episode.noul;
     }
   };
 }

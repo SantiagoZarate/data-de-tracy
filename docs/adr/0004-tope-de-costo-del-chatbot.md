@@ -1,0 +1,3 @@
+# Tope de USD 20/mes para el chatbot, con búsqueda sin LLM como respaldo
+
+El chatbot es público y no pide login, así que el costo se controla en tres capas. Vercel BotID bloquea bots. Cada IP tiene un límite de mensajes por hora, y cada Conversación un máximo de mensajes. El AI Gateway tiene un presupuesto de USD 20 por mes. Cuando se agota, el chatbot se desactiva y el sitio sigue funcionando con la búsqueda y los filtros, que no usan LLM. Para el chat usamos un modelo chico y barato. Los contadores de los límites viven en Upstash Redis (`@upstash/ratelimit`), no en Turso: así no consumen la cuota de escrituras de la base.

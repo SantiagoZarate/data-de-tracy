@@ -17,12 +17,12 @@ Un solo endpoint para todo: **`POST https://api.typesafe.ai/v1/systemone`**, `Co
 
 Schema `SystemOneRequest` ([System One](https://docs.typesafe.ai/api/system-one)):
 
-| Campo | Tipo | Notas |
-| - | - | - |
-| `model` | string, **obligatorio** | `jev-latest` (alias) o un ID versionado como `jev-1.14.0`. |
-| `state` | string \| object \| array, **obligatorio** | El contenido que se evalúa. Todas las preguntas ven el mismo `state`. |
-| `questions` | object, **obligatorio**, mínimo 1 | Mapa `id → pregunta`. Los ids los elegimos nosotros; **el modelo no los ve**, y cada respuesta vuelve bajo el mismo id ([Noul](https://docs.typesafe.ai/primitives/noul)). |
-| `assets` | object, opcional | Solo para imágenes; no lo usamos. |
+| Campo       | Tipo                                       | Notas                                                                                                                                                                      |
+| ----------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`     | string, **obligatorio**                    | `jev-latest` (alias) o un ID versionado como `jev-1.14.0`.                                                                                                                 |
+| `state`     | string \| object \| array, **obligatorio** | El contenido que se evalúa. Todas las preguntas ven el mismo `state`.                                                                                                      |
+| `questions` | object, **obligatorio**, mínimo 1          | Mapa `id → pregunta`. Los ids los elegimos nosotros; **el modelo no los ve**, y cada respuesta vuelve bajo el mismo id ([Noul](https://docs.typesafe.ai/primitives/noul)). |
+| `assets`    | object, opcional                           | Solo para imágenes; no lo usamos.                                                                                                                                          |
 
 Pregunta **Noul** (`NoulQuestion`, [System One](https://docs.typesafe.ai/api/system-one), [Noul](https://docs.typesafe.ai/primitives/noul)):
 
@@ -52,20 +52,26 @@ Schema `SystemOneResponse` ([System One](https://docs.typesafe.ai/api/system-one
 
 ```ts
 {
-  model: string;                     // ID versionado que respondió, p. ej. "jev-1.14.0" (aunque se pida el alias)
-  answers: Record<string, Answer>;   // una por pregunta, bajo el id del request
-  usage: { input_tokens: number; output_tokens: number };
+  model: string; // ID versionado que respondió, p. ej. "jev-1.14.0" (aunque se pida el alias)
+  answers: Record<string, Answer>; // una por pregunta, bajo el id del request
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+  }
 }
 
 // Noul
-{ type: "noul"; noul: number }       // probabilidad de "sí", 0 a 1. Sin campo confidence.
+{
+  type: "noul";
+  noul: number;
+} // probabilidad de "sí", 0 a 1. Sin campo confidence.
 
 // Choice
 {
   type: "choice";
-  choice: string;                          // la opción con mayor probabilidad
-  confidence: number;                      // 0 a 1, derivado de probabilities
-  probabilities: Record<string, number>;   // una por opción, suman ~1
+  choice: string; // la opción con mayor probabilidad
+  confidence: number; // 0 a 1, derivado de probabilities
+  probabilities: Record<string, number>; // una por opción, suman ~1
 }
 ```
 
@@ -85,8 +91,12 @@ Ejemplo de la spec, Choice ([System One](https://docs.typesafe.ai/api/system-one
 {
   "model": "jev-latest",
   "answers": {
-    "tone": { "type": "choice", "choice": "calm", "confidence": 0.7,
-              "probabilities": { "angry": 0.15, "calm": 0.8, "excited": 0.05 } }
+    "tone": {
+      "type": "choice",
+      "choice": "calm",
+      "confidence": 0.7,
+      "probabilities": { "angry": 0.15, "calm": 0.8, "excited": 0.05 }
+    }
   },
   "usage": { "input_tokens": 120, "output_tokens": 12 }
 }
@@ -163,14 +173,14 @@ answers.is_episode.noul; // number
 
 ## 4. Precio, límites y latencia
 
-| Concepto | Valor | Fuente |
-| - | - | - |
-| Precio | USD 0,042 por millón de tokens de entrada (USD 42 por billón); los de salida son gratis | [Models](https://docs.typesafe.ai/models), [OpenAPI `Usage`](https://api.typesafe.ai/openapi.json) |
-| Contexto | 64k tokens por request / 32k por pregunta (262k con el header `TypeSafe-Danger-Zone-Long-Context: true`, más lento y menos preciso) | [Models](https://docs.typesafe.ai/models) |
-| Cantidad de preguntas | Sin límite propio, mientras entren en el contexto | [Models](https://docs.typesafe.ai/models) |
-| Rate limit | Por organización, en tokens/s y requests/s; los valores se ven en la [consola](https://console.typesafe.ai/rate-limits), no en la doc | [Models, "Rate limits"](https://docs.typesafe.ai/models) |
-| Latencia | "Most calls complete in about 100 ms" | [How to build with TypeSafe](https://docs.typesafe.ai/concepts/how-to-build-with-system-one) |
-| Body | Máximo 32 MiB, JSON UTF-8 sin BOM, hasta 64 niveles de anidación | [Request rules and errors](https://docs.typesafe.ai/api/errors) |
+| Concepto              | Valor                                                                                                                                 | Fuente                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Precio                | USD 0,042 por millón de tokens de entrada (USD 42 por billón); los de salida son gratis                                               | [Models](https://docs.typesafe.ai/models), [OpenAPI `Usage`](https://api.typesafe.ai/openapi.json) |
+| Contexto              | 64k tokens por request / 32k por pregunta (262k con el header `TypeSafe-Danger-Zone-Long-Context: true`, más lento y menos preciso)   | [Models](https://docs.typesafe.ai/models)                                                          |
+| Cantidad de preguntas | Sin límite propio, mientras entren en el contexto                                                                                     | [Models](https://docs.typesafe.ai/models)                                                          |
+| Rate limit            | Por organización, en tokens/s y requests/s; los valores se ven en la [consola](https://console.typesafe.ai/rate-limits), no en la doc | [Models, "Rate limits"](https://docs.typesafe.ai/models)                                           |
+| Latencia              | "Most calls complete in about 100 ms"                                                                                                 | [How to build with TypeSafe](https://docs.typesafe.ai/concepts/how-to-build-with-system-one)       |
+| Body                  | Máximo 32 MiB, JSON UTF-8 sin BOM, hasta 64 niveles de anidación                                                                      | [Request rules and errors](https://docs.typesafe.ai/api/errors)                                    |
 
 - **Free tier**: no está documentado en docs.typesafe.ai ni en typesafe.ai. No aparece ni plan gratis ni créditos iniciales.
 - **Costo para nosotros** (cálculo nuestro): los ejemplos de la doc con un mensaje corto y 1–2 preguntas usan ~350–550 tokens de entrada ([Noul](https://docs.typesafe.ai/primitives/noul), [Companion Noul](https://docs.typesafe.ai/patterns/companion-noul)). Con ~500 tokens por llamada, el backfill de 300 títulos es ~150.000 tokens ≈ **USD 0,006**, y la ingesta semanal es despreciable. El costo no es un factor.
@@ -179,15 +189,15 @@ answers.is_episode.noul; // number
 
 Códigos ([Request rules and errors](https://docs.typesafe.ai/api/errors)):
 
-| HTTP | Significado | ¿Reintentar? |
-| - | - | - |
-| 400 | Body inválido (UTF-8, anidación, números no finitos). Con `max_tokens_exceeded`, el request excede el contexto. | No |
-| 401 | Key faltante o inválida | No |
-| 413 | Body > 32 MiB | No |
-| 415 | `Content-Encoding` no soportado o doble compresión | No |
-| 422 | Falla de validación (campo faltante, pregunta mal armada) | No |
-| 429 | Rate limit | Sí, con backoff exponencial |
-| 529 | TypeSafe sobrecargado | Sí, con backoff exponencial |
+| HTTP | Significado                                                                                                     | ¿Reintentar?                |
+| ---- | --------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| 400  | Body inválido (UTF-8, anidación, números no finitos). Con `max_tokens_exceeded`, el request excede el contexto. | No                          |
+| 401  | Key faltante o inválida                                                                                         | No                          |
+| 413  | Body > 32 MiB                                                                                                   | No                          |
+| 415  | `Content-Encoding` no soportado o doble compresión                                                              | No                          |
+| 422  | Falla de validación (campo faltante, pregunta mal armada)                                                       | No                          |
+| 429  | Rate limit                                                                                                      | Sí, con backoff exponencial |
+| 529  | TypeSafe sobrecargado                                                                                           | Sí, con backoff exponencial |
 
 - Formato del cuerpo: 400 → `{ "detail": string | object }`; 422 → `{ "detail": [{ "loc": [...], "msg": string, "type": string, "input"?: string, "ctx"?: object }] }` ([System One, `HTTPBadRequestError` / `HTTPValidationError`](https://docs.typesafe.ai/api/system-one)).
 - El 429 puede traer `retry-after`; los SDKs lo respetan ([Models, "Rate limits"](https://docs.typesafe.ai/models)). La doc pide backoff exponencial y no reintentar en el acto ([Request rules and errors, "Handling rate limits"](https://docs.typesafe.ai/api/errors)).
@@ -236,7 +246,8 @@ Códigos ([Request rules and errors](https://docs.typesafe.ai/api/errors)):
 }
 ```
 
-  La pregunta en inglés por default, porque es como están todos los ejemplos; en la primera prueba, mandar también `is_episode_es` con la misma pregunta en español y quedarse con la que separe mejor. La descripción de `podcast_episode_format` es nuestra y hay que ajustarla a lo que de verdad son los Episodios ([glosario](../../GLOSSARY.md)).
+La pregunta en inglés por default, porque es como están todos los ejemplos; en la primera prueba, mandar también `is_episode_es` con la misma pregunta en español y quedarse con la que separe mejor. La descripción de `podcast_episode_format` es nuestra y hay que ajustarla a lo que de verdad son los Episodios ([glosario](../../GLOSSARY.md)).
+
 - **Lógica de umbrales** (los de arranque de la doc, [Noul](https://docs.typesafe.ai/primitives/noul)):
   - `noul > 0.7` → es Episodio: bajar la transcripción.
   - `noul < 0.3` → no es Episodio: saltearlo.

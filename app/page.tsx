@@ -5,6 +5,10 @@ import { ThemeSwitcher } from "@/src/ui/theme-switcher.tsx";
 
 const countryNames = new Intl.DisplayNames(["es"], { type: "region" });
 
+type StoryWithEpisode = EpisodeWithStories["stories"][number] & {
+  episode: Omit<EpisodeWithStories, "stories">;
+};
+
 function youtubeUrl(videoId: string, startSeconds?: number) {
   const url = new URL("https://www.youtube.com/watch");
   url.searchParams.set("v", videoId);
@@ -18,26 +22,28 @@ export default async function Home() {
   cacheLife("hours");
 
   const episodes = await listEpisodesWithStories(db);
-  const storyCount = episodes.reduce((total, e) => total + e.stories.length, 0);
+  const stories: StoryWithEpisode[] = episodes.flatMap(({ stories, ...episode }) =>
+    stories.map((story) => ({ ...story, episode })),
+  );
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12">
+    <main className="mx-auto w-full max-w-7xl px-6 py-12">
       <header className="mb-10 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Episodios procesados</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Historias</h1>
           <p className="mt-2 text-muted-foreground">
-            {episodes.length} Episodios y {storyCount} Historias en la base.
+            {stories.length} Historias de {episodes.length} Episodios.
           </p>
         </div>
         <ThemeSwitcher />
       </header>
 
-      {episodes.length === 0 ? (
-        <p>Todavía no hay Episodios en la base.</p>
+      {stories.length === 0 ? (
+        <p>Todavía no hay Historias en la base.</p>
       ) : (
-        <ol className="flex flex-col gap-10">
-          {episodes.map((episode) => (
-            <EpisodeItem key={episode.videoId} episode={episode} />
+        <ol className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {stories.map((story) => (
+            <StoryCard key={story.id} story={story} />
           ))}
         </ol>
       )}
@@ -49,47 +55,68 @@ export default async function Home() {
   );
 }
 
-function EpisodeItem({ episode }: { episode: EpisodeWithStories }) {
+function flagEmoji(countryCode: string) {
+  return String.fromCodePoint(
+    ...[...countryCode.toUpperCase()].map((c) => 0x1f1a5 + c.charCodeAt(0)),
+  );
+}
+
+function Flag({ icon, label, code }: { icon: string; label: string; code: string }) {
+  const name = `${label} ${countryNames.of(code)}`;
   return (
-    <li>
-      <h2 className="text-xl font-semibold">
-        <a href={youtubeUrl(episode.videoId)} className="hover:underline">
-          #{episode.number} · {episode.title}
-        </a>
-      </h2>
-      {episode.stories.length === 0 ? (
-        <p className="mt-2 text-muted-foreground">Sin Historias.</p>
-      ) : (
-        <ol className="mt-4 flex flex-col gap-4">
-          {episode.stories.map((story) => (
-            <li key={story.id} className="rounded-lg border bg-card p-4 text-card-foreground">
-              <h3 className="flex flex-wrap items-center gap-2 font-medium">
-                {story.title}
-                {story.type === "bonus" && (
-                  <span className="rounded-full bg-highlight px-2 py-0.5 text-xs text-highlight-foreground">
-                    Bonus Track
-                  </span>
-                )}
-              </h3>
-              <p className="mt-2">{story.summary}</p>
-              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                <dt>Dónde ocurre</dt>
-                <dd>{story.storyCountry ? countryNames.of(story.storyCountry) : "No se sabe"}</dd>
-                <dt>Desde dónde la mandaron</dt>
-                <dd>{story.senderCountry ? countryNames.of(story.senderCountry) : "No se sabe"}</dd>
-                <dt>Temáticas</dt>
-                <dd>{story.themes.map((t) => t.theme).join(", ")}</dd>
-              </dl>
-              <a
-                href={youtubeUrl(episode.videoId, story.startSeconds)}
-                className="mt-3 inline-block text-sm font-medium underline"
-              >
-                Escuchar desde el minuto {Math.floor(story.startSeconds / 60)}
-              </a>
+    <span
+      title={name}
+      className="flex items-center gap-1 rounded-md bg-background/85 px-1.5 py-0.5 text-sm shadow-sm backdrop-blur-sm"
+    >
+      <span aria-hidden="true" className="text-xs">
+        {icon}
+      </span>
+      <span aria-hidden="true">{flagEmoji(code)}</span>
+      <span className="sr-only">{name}</span>
+    </span>
+  );
+}
+
+function StoryCard({ story }: { story: StoryWithEpisode }) {
+  return (
+    <li className="flex flex-col overflow-hidden rounded-lg border bg-card text-card-foreground">
+      <div className="relative flex aspect-video items-center justify-center bg-muted">
+        <span aria-hidden="true" className="text-2xl font-semibold text-muted-foreground">
+          #{story.episode.number}
+        </span>
+        {(story.storyCountry || story.senderCountry) && (
+          <div className="absolute bottom-2 left-2 flex gap-1.5">
+            {story.storyCountry && <Flag icon="📍" label="Ocurre en" code={story.storyCountry} />}
+            {story.senderCountry && (
+              <Flag icon="✉️" label="Enviada desde" code={story.senderCountry} />
+            )}
+          </div>
+        )}
+        {story.type === "bonus" && (
+          <span className="absolute top-2 right-2 rounded-full bg-highlight px-2 py-0.5 text-xs font-medium text-highlight-foreground shadow-sm">
+            Bonus Track
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <h2 className="text-sm font-semibold">
+          <a
+            href={youtubeUrl(story.episode.videoId, story.startSeconds)}
+            className="hover:underline"
+          >
+            Episodio #{story.episode.number} · {story.episode.title}
+          </a>
+        </h2>
+        <p className="line-clamp-4 text-sm">{story.summary}</p>
+        <ul aria-label="Temáticas" className="mt-auto flex flex-wrap gap-1.5">
+          {story.themes.map(({ theme }) => (
+            <li key={theme} className="rounded-full bg-muted px-2 py-0.5 text-xs">
+              {theme}
             </li>
           ))}
-        </ol>
-      )}
+        </ul>
+      </div>
     </li>
   );
 }

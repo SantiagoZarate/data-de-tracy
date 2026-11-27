@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppPreferences } from "@/src/ui/app-preferences.tsx";
+import { ReactGrab } from "@/src/ui/react-grab.tsx";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <AppPreferences>{children}</AppPreferences>
+        {process.env.NODE_ENV === "development" && <ReactGrab />}
       </body>
     </html>
   );

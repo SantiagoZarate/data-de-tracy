@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
+import { eq } from "drizzle-orm";
 import type { Story } from "../ingestion/stories.ts";
 import type { Db } from "./index.ts";
 import { saveEpisode, type ProcessedEpisode } from "./save-episode.ts";
+import { stories, storyThemes } from "./schema.ts";
 import { createTestDb } from "./test-db.ts";
 
 let db: Db;
@@ -88,6 +90,90 @@ test("guardar dos veces no crea duplicados y las Historias conservan su id", asy
   );
 });
 
+test("al re-procesar conserva las Correcciones manuales y actualiza los demás campos", async () => {
+  const principal = story();
+  const bonus = story({
+    type: "bonus",
+    startSeconds: 850,
+    endSeconds: 1230,
+  });
+  await saveEpisode(db, episode([principal, bonus]));
+  const [before] = await read();
+  const [principalId, bonusId] = before.stories.map(({ id }) => id);
+
+  await db
+    .update(stories)
+    .set({
+      title: "Título corregido",
+      titleCorrected: true,
+      storyCountry: null,
+      storyCountryCorrected: true,
+      themesCorrected: true,
+    })
+    .where(eq(stories.id, principalId));
+  await db.delete(storyThemes).where(eq(storyThemes.storyId, principalId));
+  await db.insert(storyThemes).values({ storyId: principalId, theme: "Viajes" });
+  await db
+    .update(stories)
+    .set({
+      summary: "Resumen corregido",
+      summaryCorrected: true,
+      senderCountry: "UY",
+      senderCountryCorrected: true,
+    })
+    .where(eq(stories.id, bonusId));
+
+  const regenerated = {
+    title: "Título regenerado",
+    summary: "Resumen regenerado",
+    storyCountry: "MX",
+    senderCountry: "CL",
+    themes: ["Humor"],
+  } satisfies Partial<Story>;
+  await saveEpisode(
+    db,
+    episode([
+      { ...principal, ...regenerated, startSeconds: 280 },
+      { ...bonus, ...regenerated },
+    ]),
+  );
+
+  const [after] = await read();
+  assert.deepEqual(
+    after.stories.map(
+      ({ id, title, summary, storyCountry, senderCountry, startSeconds, themes }) => ({
+        id,
+        title,
+        summary,
+        storyCountry,
+        senderCountry,
+        startSeconds,
+        themes: themes.map(({ theme }) => theme),
+      }),
+    ),
+    [
+      {
+        id: principalId,
+        title: "Título corregido",
+        summary: "Resumen regenerado",
+        storyCountry: null,
+        senderCountry: "CL",
+        startSeconds: 280,
+        themes: ["Viajes"],
+      },
+      {
+        id: bonusId,
+        title: "Título regenerado",
+        summary: "Resumen corregido",
+        storyCountry: "MX",
+        senderCountry: "UY",
+        startSeconds: 850,
+        themes: ["Humor"],
+      },
+    ],
+  );
+});
+
 test("si al re-procesar hay menos Historias, borra las que sobran", async () => {
   await saveEpisode(db, episode([story(), story({ type: "bonus" })]));
   await saveEpisode(db, episode([story()]));
@@ -99,6 +185,31 @@ test("si al re-procesar hay menos Historias, borra las que sobran", async () => 
   );
   const themes = await db.query.storyThemes.findMany();
   assert.equal(themes.length, 2, "las Temáticas de la Historia borrada se van en cascada");
+});
+
+test("deja intacto el Episodio si una Historia corregida desaparece o cambia de posición", async () => {
+  const principal = story();
+  const firstBonus = story({ type: "bonus", startSeconds: 850, endSeconds: 1230 });
+  const secondBonus = story({ type: "bonus", startSeconds: 1420, endSeconds: 1790 });
+  await saveEpisode(db, episode([principal, firstBonus, secondBonus]));
+  const [original] = await read();
+  await db
+    .update(stories)
+    .set({ title: "Bonus Track corregido", titleCorrected: true })
+    .where(eq(stories.id, original.stories[1].id));
+  const before = await read();
+
+  const changedPrincipal = { ...principal, summary: "Otro resumen" };
+  for (const regenerated of [
+    [changedPrincipal, secondBonus],
+    [changedPrincipal, secondBonus, firstBonus],
+  ]) {
+    await assert.rejects(
+      saveEpisode(db, { ...episode(regenerated), title: "Otro título" }),
+      /Historia 2 con Correcciones manuales del Episodio #100/,
+    );
+    assert.deepEqual(await read(), before);
+  }
 });
 
 test("un Episodio sin Historias se guarda igual", async () => {

@@ -78,7 +78,7 @@ Los términos están definidos en [`GLOSSARY.md`](../GLOSSARY.md). Las decisione
 - **Spotify**: fuera de la v1. Solo se enlaza a YouTube.
 - **Modelo de la ingesta**: `claude-haiku-5-5`. Con la muestra de 16 Episodios separó bien las Historias y sacó metadatos razonables, así que no hace falta uno más caro.
 - **Ingesta**: una tarea semanal en Trigger.dev procesa los episodios nuevos. El backfill es un script local que usa la misma función ([ADR 0005](./adr/0005-ingesta-en-trigger-dev.md)).
-- **Auth y admin**: no hay login ni páginas de admin. El único admin es el mantenedor, que re-procesa con scripts y corrige datos desde Drizzle Studio.
+- **Auth y admin**: no hay login ni páginas de admin. El único admin es el mantenedor, que re-procesa con scripts y corrige datos desde [Drizzle Studio](./correcciones-manuales.md).
 - **Costos**: el chatbot tiene un tope de USD 20/mes. Se protege con BotID, límite por IP y por Conversación (Upstash) y un presupuesto en el AI Gateway ([ADR 0004](./adr/0004-tope-de-costo-del-chatbot.md)).
 
 ## Preguntas abiertas

@@ -2,26 +2,26 @@
 
 Cómo está armado un Episodio, para separar sus Historias con un LLM. Sale de leer las transcripciones de Supadata de tres Episodios (relevado el 2026-11-27):
 
-| Episodio | Video | Duración | Historias |
-|---|---|---|---|
-| #59 "Se me apagó la tele en Ámsterdam" | `buk_00BqiDs` | 23:14 | principal + Bonus Track |
-| #304 "Superespecial Halloween" | `foJC1WxCXLM` | 25:56 | principal + Bonus Track |
-| #307 "Culebrón italiano" | `DPXp1zDXD2Q` | 16:29 | principal |
+| Episodio                               | Video         | Duración | Historias               |
+| -------------------------------------- | ------------- | -------- | ----------------------- |
+| #59 "Se me apagó la tele en Ámsterdam" | `buk_00BqiDs` | 23:14    | principal + Bonus Track |
+| #304 "Superespecial Halloween"         | `foJC1WxCXLM` | 25:56    | principal + Bonus Track |
+| #307 "Culebrón italiano"               | `DPXp1zDXD2Q` | 16:29    | principal               |
 
 Se confirmó con una muestra de 16 Episodios (#67 a #143, 2026-11-27): la estructura se repite y los cortes del LLM salieron bien.
 
 ## Secciones
 
-| # | Sección | Cómo se reconoce | Está en |
-|---|---|---|---|
-| 1 | Promo | Un conductor promociona su show de stand-up y cierra con "…y arranca Anécdotas". | #304, #307 (no en #59) |
-| 2 | Intro fija | Casi textual: "Si quieren compartir su anécdota, mándennos un mail… Aclaren si quieren que sea anónimo… Los dejamos con un nuevo capítulo de anécdotas". Después, música. | los tres |
-| 3 | Charla | Los conductores charlan. Cierra con un pie a la lectura ("¿Algo para saber, Cristian?", "denle play") y música. | los tres |
-| 4 | **Historia principal** | Una carta leída en voz alta (ver abajo). | los tres |
-| 5 | Comentarios | Los conductores comentan la Historia. | los tres |
-| 6 | **Bonus Track** | Otra carta. A veces un conductor la presenta antes ("llega otra anécdota de un viaje en Ámsterdam también"). | #59, #304 |
-| 7 | Comentarios | Comentan el Bonus Track. | #59, #304 |
-| 8 | Cierre | Agradecen a quien mandó la anécdota y al equipo ("Gracias … por la edición", "…por la postproducción de sonido") y se despiden ("nos vemos el próximo domingo"). | los tres |
+| #   | Sección                | Cómo se reconoce                                                                                                                                                          | Está en                |
+| --- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1   | Promo                  | Un conductor promociona su show de stand-up y cierra con "…y arranca Anécdotas".                                                                                          | #304, #307 (no en #59) |
+| 2   | Intro fija             | Casi textual: "Si quieren compartir su anécdota, mándennos un mail… Aclaren si quieren que sea anónimo… Los dejamos con un nuevo capítulo de anécdotas". Después, música. | los tres               |
+| 3   | Charla                 | Los conductores charlan. Cierra con un pie a la lectura ("¿Algo para saber, Cristian?", "denle play") y música.                                                           | los tres               |
+| 4   | **Historia principal** | Una carta leída en voz alta (ver abajo).                                                                                                                                  | los tres               |
+| 5   | Comentarios            | Los conductores comentan la Historia.                                                                                                                                     | los tres               |
+| 6   | **Bonus Track**        | Otra carta. A veces un conductor la presenta antes ("llega otra anécdota de un viaje en Ámsterdam también").                                                              | #59, #304              |
+| 7   | Comentarios            | Comentan el Bonus Track.                                                                                                                                                  | #59, #304              |
+| 8   | Cierre                 | Agradecen a quien mandó la anécdota y al equipo ("Gracias … por la edición", "…por la postproducción de sonido") y se despiden ("nos vemos el próximo domingo").          | los tres               |
 
 Muy rara vez un Episodio trae más de un Bonus Track: se repiten las secciones 6 y 7. Pasa en #100 "Atropellar y huir" (`7DiB6_P9jd4`), que tiene tres Historias.
 

@@ -1,0 +1,101 @@
+@layer ui-sdk;
+@import "tailwindcss";
+@import "@ui-sdk/core/web.css" layer(components);
+
+/* `dark:` sigue la elección de tema (data-color-scheme en <html>), no solo la del sistema. */
+@custom-variant dark {
+  &:where([data-color-scheme="dark"], [data-color-scheme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-color-scheme="system"], [data-color-scheme="system"] *) {
+      @slot;
+    }
+  }
+}
+
+/* Claro por defecto: también sin JavaScript, antes de que se aplique la preferencia guardada. */
+:root,
+[data-color-scheme="light"] {
+  color-scheme: light;
+}
+
+[data-color-scheme="system"] {
+  color-scheme: light dark;
+}
+
+[data-color-scheme="dark"] {
+  color-scheme: dark;
+}
+
+/*
+ * Tokens del tema: cada uno es light-dark(claro, oscuro), así que cambiar de tema solo cambia
+ * color-scheme. Se declaran también en [data-color-scheme] porque light-dark() se resuelve
+ * donde se declara la variable.
+ */
+:root,
+[data-color-scheme] {
+  --radius: 0.625rem;
+  --background: light-dark(oklch(1 0 0), oklch(0.145 0 0));
+  --foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+  --card: light-dark(oklch(1 0 0), oklch(0.185 0 0));
+  --card-foreground: var(--foreground);
+  --muted: light-dark(oklch(0.967 0 0), oklch(0.226 0 0));
+  --muted-foreground: light-dark(oklch(0.5 0 0), oklch(0.72 0 0));
+  --primary: light-dark(oklch(0.205 0 0), oklch(0.922 0 0));
+  --primary-foreground: light-dark(oklch(0.985 0 0), oklch(0.205 0 0));
+  --highlight: light-dark(oklch(0.962 0.059 95.6), oklch(0.414 0.112 45.9));
+  --highlight-foreground: light-dark(oklch(0.414 0.112 45.9), oklch(0.962 0.059 95.6));
+  --destructive: light-dark(oklch(0.552 0.224 25.5), oklch(0.712 0.181 22.8));
+  --border: light-dark(oklch(0.919 0 0), oklch(0.285 0 0));
+  --input: light-dark(oklch(0.64 0 0), oklch(0.52 0 0));
+  --ring: light-dark(oklch(0.55 0 0), oklch(0.62 0 0));
+
+  /* Los componentes de ui-sdk usan los mismos tokens. */
+  --ui-background: var(--background);
+  --ui-foreground: var(--foreground);
+  --ui-muted: var(--muted);
+  --ui-muted-foreground: var(--muted-foreground);
+  --ui-primary: var(--primary);
+  --ui-primary-foreground: var(--primary-foreground);
+  --ui-destructive: var(--destructive);
+  --ui-border: var(--border);
+  --ui-input: var(--input);
+  --ui-ring-border: var(--ring);
+  --ui-radius: calc(var(--radius) * 0.8);
+  --ui-font-sans: var(--font-geist-sans);
+  --ui-font-mono: var(--font-geist-mono);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+}

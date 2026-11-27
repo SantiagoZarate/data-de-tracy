@@ -1,7 +1,7 @@
 import { generateText, Output, type LanguageModel } from "ai";
 import { z } from "zod";
 
-export const TEMATICAS = [
+export const THEMES = [
   "Terror",
   "Paranormal",
   "Amor",
@@ -21,43 +21,59 @@ export const TEMATICAS = [
   "Inmoral",
 ] as const;
 
-export const historiaSchema = z.object({
-  tipo: z.enum(["principal", "bonus"]),
-  inicioSegundos: z.number().int().nonnegative().describe("Segundo de la transcripción donde empieza la lectura de la Historia"),
-  finSegundos: z.number().int().nonnegative().describe("Segundo de la transcripción donde termina la lectura de la Historia"),
-  titulo: z.string().describe("Título corto propio de la Historia, en mayúsculas, sacado de su contenido"),
-  resumen: z.string().describe("Resumen de 2 a 3 líneas, en español"),
-  paisHistoria: z
+export const STORY_TYPES = ["principal", "bonus"] as const;
+
+export const storySchema = z.object({
+  type: z.enum(STORY_TYPES),
+  startSeconds: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Segundo de la transcripción donde empieza la lectura de la Historia"),
+  endSeconds: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Segundo de la transcripción donde termina la lectura de la Historia"),
+  title: z
+    .string()
+    .describe("Título corto propio de la Historia, en mayúsculas, sacado de su contenido"),
+  summary: z.string().describe("Resumen de 2 a 3 líneas, en español"),
+  storyCountry: z
     .string()
     .regex(/^[A-Z]{2}$/)
     .nullable()
-    .describe("Código ISO 3166-1 alfa-2 del país donde ocurre la Historia, o null si no se menciona"),
-  paisRemitente: z
+    .describe(
+      "Código ISO 3166-1 alfa-2 del país donde ocurre la Historia, o null si no se menciona",
+    ),
+  senderCountry: z
     .string()
     .regex(/^[A-Z]{2}$/)
     .nullable()
-    .describe("Código ISO 3166-1 alfa-2 del país de quien envió la Historia, o null si no se menciona"),
-  tematicas: z.array(z.enum(TEMATICAS)).min(1).max(3),
+    .describe(
+      "Código ISO 3166-1 alfa-2 del país de quien envió la Historia, o null si no se menciona",
+    ),
+  themes: z.array(z.enum(THEMES)).min(1).max(3),
 });
 
-export const historiasSchema = z.object({ historias: z.array(historiaSchema) });
+export const storiesSchema = z.object({ stories: z.array(storySchema) });
 
-export type Historia = z.infer<typeof historiaSchema>;
+export type Story = z.infer<typeof storySchema>;
 
-export interface SegmentoTranscripcion {
-  texto: string;
-  inicioSegundos: number;
+export interface TranscriptSegment {
+  text: string;
+  startSeconds: number;
 }
 
-function formatearTiempo(segundos: number): string {
-  const s = Math.floor(segundos);
+function formatTime(seconds: number): string {
+  const s = Math.floor(seconds);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const pad = (n: number) => String(n).padStart(2, "0");
   return h > 0 ? `${h}:${pad(m)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`;
 }
 
-const SISTEMA = `Analizás transcripciones de "Anecdotas de Tracy", un podcast argentino donde los conductores leen en voz alta cartas que mandan los oyentes. Cada carta es una Historia.
+const SYSTEM_PROMPT = `Analizás transcripciones de "Anecdotas de Tracy", un podcast argentino donde los conductores leen en voz alta cartas que mandan los oyentes. Cada carta es una Historia.
 
 Estructura típica de un Episodio:
 1. A veces, una promo de un show de stand-up.
@@ -83,30 +99,30 @@ Cómo reconocer un Bonus Track:
 La transcripción puede tener errores, sin puntuación ni mayúsculas. Reconocé las secciones por su estructura, no por frases exactas.
 
 Para cada Historia devolvé:
-- tipo: "principal" para la primera carta, "bonus" para las siguientes.
-- inicio y fin en segundos, según los timestamps [mm:ss] de la transcripción.
-- título: uno propio, corto y en mayúsculas, sacado del contenido de la Historia. El título del Episodio sirve de referencia para el estilo, pero puede describir el Bonus Track o ninguna de las Historias: no lo copies.
-- resumen de 2 a 3 líneas en español.
-- paisHistoria: código ISO 3166-1 alfa-2 del país donde ocurre la Historia.
-- paisRemitente: código ISO 3166-1 alfa-2 del país de quien envía la carta.
-  Pueden ser distintos (un argentino que cuenta algo que le pasó en Ámsterdam: paisHistoria "NL", paisRemitente "AR"). Usá null si la Historia no lo menciona ni se deduce con claridad de lo que cuenta (una ciudad, una provincia). No asumas Argentina por default.
-- entre 1 y 3 Temáticas, solo de la lista permitida.`;
+- type: "principal" para la primera carta, "bonus" para las siguientes.
+- startSeconds y endSeconds, según los timestamps [mm:ss] de la transcripción.
+- title: uno propio, corto y en mayúsculas, sacado del contenido de la Historia. El título del Episodio sirve de referencia para el estilo, pero puede describir el Bonus Track o ninguna de las Historias: no lo copies.
+- summary: resumen de 2 a 3 líneas en español.
+- storyCountry: código ISO 3166-1 alfa-2 del país donde ocurre la Historia.
+- senderCountry: código ISO 3166-1 alfa-2 del país de quien envía la carta.
+  Pueden ser distintos (un argentino que cuenta algo que le pasó en Ámsterdam: storyCountry "NL", senderCountry "AR"). Usá null si la Historia no lo menciona ni se deduce con claridad de lo que cuenta (una ciudad, una provincia). No asumas Argentina por default.
+- themes: entre 1 y 3 Temáticas, solo de la lista permitida.`;
 
-export async function separarHistorias(params: {
+export async function splitStories(params: {
   model: LanguageModel;
-  tituloEpisodio: string;
-  segmentos: SegmentoTranscripcion[];
-}): Promise<Historia[]> {
-  const transcripcion = params.segmentos
-    .map((s) => `[${formatearTiempo(s.inicioSegundos)}] ${s.texto}`)
+  episodeTitle: string;
+  segments: TranscriptSegment[];
+}): Promise<Story[]> {
+  const transcript = params.segments
+    .map((s) => `[${formatTime(s.startSeconds)}] ${s.text}`)
     .join("\n");
 
   const { output } = await generateText({
     model: params.model,
-    output: Output.object({ schema: historiasSchema }),
-    system: SISTEMA,
-    prompt: `Título del Episodio: ${params.tituloEpisodio}\n\nTranscripción:\n${transcripcion}`,
+    output: Output.object({ schema: storiesSchema }),
+    system: SYSTEM_PROMPT,
+    prompt: `Título del Episodio: ${params.episodeTitle}\n\nTranscripción:\n${transcript}`,
   });
 
-  return output.historias;
+  return output.stories;
 }

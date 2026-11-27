@@ -21,17 +21,20 @@ La pieza central es un **chatbot**: el usuario describe en lenguaje natural los 
 ## Funcionalidades principales
 
 ### 1. Búsqueda conversacional (chatbot)
+
 - El usuario describe detalles de la historia en español.
 - El sistema sugiere las historias que mejor coinciden.
 - El formato exacto del resultado (resumen, link, timestamp, reproductor, etc.) está por definir (ver Preguntas abiertas).
 
 ### 2. Exploración y filtros
+
 - Filtrar historias por **país** (dónde ocurre o de dónde es quien la envió).
 - Filtrar por **temática** (ej.: terror, amor, bizarro, familia…).
 - Filtrar por **tipo**: historia principal o Bonus Track.
 - Otros filtros a definir más adelante.
 
 ### 3. Ingesta de episodios
+
 - **Backfill inicial**: importar los ~300 episodios existentes.
 - **Ingesta continua**: detectar y procesar automáticamente los episodios nuevos a medida que se publican.
 - Fuente prevista: transcripciones de los videos de YouTube obtenidas con **Supadata**.

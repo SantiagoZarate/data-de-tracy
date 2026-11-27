@@ -12,10 +12,10 @@ Qué necesitamos de Supadata para procesar un Episodio (issue #1): el título de
 
 Hay dos:
 
-| Endpoint | Estado | Identifica el video con | `mode` |
-| - | - | - | - |
-| `GET /v1/transcript` (universal) | vigente | `url` (obligatorio) | sí |
-| `GET /v1/youtube/transcript` | **deprecated** | `url` o `videoId` | no |
+| Endpoint                         | Estado         | Identifica el video con | `mode` |
+| -------------------------------- | -------------- | ----------------------- | ------ |
+| `GET /v1/transcript` (universal) | vigente        | `url` (obligatorio)     | sí     |
+| `GET /v1/youtube/transcript`     | **deprecated** | `url` o `videoId`       | no     |
 
 El de YouTube está marcado `deprecated: true` en la spec ([OpenAPI](https://docs.supadata.ai/api-reference/v1-openapi.json), [referencia](https://docs.supadata.ai/api-reference/endpoint/youtube/transcript)), y el SDK lo marca `@deprecated` a favor de `supadata.transcript()` ([`@supadata/js` 1.4.0, `dist/index.d.ts`](https://www.npmjs.com/package/@supadata/js)). Usamos el universal.
 
@@ -23,13 +23,13 @@ El de YouTube está marcado `deprecated: true` en la spec ([OpenAPI](https://doc
 
 Fuente: [Transcript](https://docs.supadata.ai/get-transcript) y [referencia](https://docs.supadata.ai/api-reference/endpoint/transcript/transcript).
 
-| Parámetro | Tipo | Notas |
-| - | - | - |
-| `url` | string, obligatorio | URL del video (`https://www.youtube.com/watch?v=<ID>`). Recomiendan encodearla. No acepta `videoId`. |
-| `lang` | string | Idioma preferido (ISO 639-1), p. ej. `es`. |
-| `text` | boolean, default `false` | `true` devuelve texto plano, **sin timestamps**. |
-| `chunkSize` | number, 50–10000 | Máximo de caracteres por segmento. Solo con `text=false`. |
-| `mode` | `native` \| `auto` \| `generate`, default `auto` | `native`: solo trae la transcripción existente. `generate`: siempre la genera con IA. `auto`: prueba `native` y, si no hay, genera con IA. |
+| Parámetro   | Tipo                                             | Notas                                                                                                                                      |
+| ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `url`       | string, obligatorio                              | URL del video (`https://www.youtube.com/watch?v=<ID>`). Recomiendan encodearla. No acepta `videoId`.                                       |
+| `lang`      | string                                           | Idioma preferido (ISO 639-1), p. ej. `es`.                                                                                                 |
+| `text`      | boolean, default `false`                         | `true` devuelve texto plano, **sin timestamps**.                                                                                           |
+| `chunkSize` | number, 50–10000                                 | Máximo de caracteres por segmento. Solo con `text=false`.                                                                                  |
+| `mode`      | `native` \| `auto` \| `generate`, default `auto` | `native`: solo trae la transcripción existente. `generate`: siempre la genera con IA. `auto`: prueba `native` y, si no hay, genera con IA. |
 
 ### Respuesta (HTTP 200, `text=false`)
 
@@ -71,10 +71,10 @@ Un 200 con `content: []` significa que no se detectó habla, y se cobra igual ([
 
 Dos opciones:
 
-| Endpoint | Estado | Parámetro | Título en |
-| - | - | - | - |
-| `GET /v1/metadata` (universal) | vigente | `url` | `title` |
-| `GET /v1/youtube/video` | **deprecated** | `id` (URL o ID) | `title` |
+| Endpoint                       | Estado         | Parámetro       | Título en |
+| ------------------------------ | -------------- | --------------- | --------- |
+| `GET /v1/metadata` (universal) | vigente        | `url`           | `title`   |
+| `GET /v1/youtube/video`        | **deprecated** | `id` (URL o ID) | `title`   |
 
 ([OpenAPI](https://docs.supadata.ai/api-reference/v1-openapi.json), [Video](https://docs.supadata.ai/api-reference/endpoint/youtube/video-get), [Metadata](https://docs.supadata.ai/get-metadata)). El SDK también marca `youtube.video()` como deprecated a favor de `supadata.metadata()` ([`@supadata/js` 1.4.0](https://www.npmjs.com/package/@supadata/js)).
 
@@ -106,16 +106,16 @@ Respuesta de `/v1/metadata` ([Metadata](https://docs.supadata.ai/get-metadata), 
 
 ### Créditos por llamada
 
-| Llamada | Costo | Fuente |
-| - | - | - |
-| Transcripción existente (`native`, o `auto` cuando hay) | 1 crédito | [Transcript](https://docs.supadata.ai/get-transcript#pricing) |
-| Transcripción generada con IA | 2 créditos por minuto de video | [Transcript](https://docs.supadata.ai/get-transcript#pricing) |
-| 206 "transcript unavailable" (video sin subtítulos) | 1 crédito | [Transcript](https://docs.supadata.ai/get-transcript#pricing), [error](https://docs.supadata.ai/errors/transcript-unavailable) |
-| Errores 5xx | 0 | [Transcript](https://docs.supadata.ai/get-transcript#pricing) |
-| Consultar estado de un job | 0 | [Transcript](https://docs.supadata.ai/get-transcript#pricing) |
-| Metadatos (`/metadata`) | 1 crédito | [Metadata](https://docs.supadata.ai/get-metadata#pricing) |
-| Listar videos de un canal (`/youtube/channel/videos`) | 1 crédito | [Channel Videos](https://docs.supadata.ai/youtube/channel-videos) |
-| Cada video en un batch | 1 crédito | [Batch](https://docs.supadata.ai/youtube/batch) |
+| Llamada                                                 | Costo                          | Fuente                                                                                                                         |
+| ------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| Transcripción existente (`native`, o `auto` cuando hay) | 1 crédito                      | [Transcript](https://docs.supadata.ai/get-transcript#pricing)                                                                  |
+| Transcripción generada con IA                           | 2 créditos por minuto de video | [Transcript](https://docs.supadata.ai/get-transcript#pricing)                                                                  |
+| 206 "transcript unavailable" (video sin subtítulos)     | 1 crédito                      | [Transcript](https://docs.supadata.ai/get-transcript#pricing), [error](https://docs.supadata.ai/errors/transcript-unavailable) |
+| Errores 5xx                                             | 0                              | [Transcript](https://docs.supadata.ai/get-transcript#pricing)                                                                  |
+| Consultar estado de un job                              | 0                              | [Transcript](https://docs.supadata.ai/get-transcript#pricing)                                                                  |
+| Metadatos (`/metadata`)                                 | 1 crédito                      | [Metadata](https://docs.supadata.ai/get-metadata#pricing)                                                                      |
+| Listar videos de un canal (`/youtube/channel/videos`)   | 1 crédito                      | [Channel Videos](https://docs.supadata.ai/youtube/channel-videos)                                                              |
+| Cada video en un batch                                  | 1 crédito                      | [Batch](https://docs.supadata.ai/youtube/batch)                                                                                |
 
 Cada respuesta trae el header `x-billable-requests` con los créditos consumidos. En un 202 es una estimación que se ajusta al terminar el job; el polling informa `0` ([Transcript, "Tracking Credit Usage"](https://docs.supadata.ai/get-transcript#pricing)).
 
@@ -123,12 +123,12 @@ Cada respuesta trae el header `x-billable-requests` con los créditos consumidos
 
 Según la [página de precios](https://supadata.ai/pricing):
 
-| Plan | Precio | Créditos/mes | Requests/seg |
-| - | - | - | - |
-| Free | gratis | 100 | 1 |
-| Basic | USD 5/mes, solo anual (USD 60/año) | 300 | 10 |
-| Pro | USD 17/mes | 3.000 | 10 |
-| Mega | USD 47/mes | 30.000 | 50 |
+| Plan  | Precio                             | Créditos/mes | Requests/seg |
+| ----- | ---------------------------------- | ------------ | ------------ |
+| Free  | gratis                             | 100          | 1            |
+| Basic | USD 5/mes, solo anual (USD 60/año) | 300          | 10           |
+| Pro   | USD 17/mes                         | 3.000        | 10           |
+| Mega  | USD 47/mes                         | 30.000       | 50           |
 
 - Los créditos no se acumulan de un mes al otro. Al llegar al tope no se pueden hacer más pedidos hasta subir de plan o activar Auto Recharge (solo planes pagos) ([precios](https://supadata.ai/pricing)).
 - Los endpoints de batch y traducción son de Pro en adelante ([Batch](https://docs.supadata.ai/youtube/batch), [precios](https://supadata.ai/pricing)).
@@ -147,20 +147,25 @@ Cálculo nuestro con los precios de arriba:
 Formato de todos los errores ([Error Codes](https://docs.supadata.ai/errors/list)):
 
 ```json
-{ "error": "error-code", "message": "...", "details": "...", "documentationUrl": "https://docs.supadata.ai/errors/<error-code>" }
+{
+  "error": "error-code",
+  "message": "...",
+  "details": "...",
+  "documentationUrl": "https://docs.supadata.ai/errors/<error-code>"
+}
 ```
 
-| HTTP | `error` | Qué hacer |
-| - | - | - |
-| 206 | `transcript-unavailable` | No reintentar: es una respuesta definitiva, el video no tiene subtítulos ([error](https://docs.supadata.ai/errors/transcript-unavailable)). |
-| 400 | `invalid-request` | Corregir el pedido ([Error Codes](https://docs.supadata.ai/errors/list)). |
-| 401 | `unauthorized` | Key faltante, inválida o vencida ([Unauthorized](https://docs.supadata.ai/errors/unauthorized)). |
-| 402 | `upgrade-required` | El endpoint no está en el plan ([Upgrade Required](https://docs.supadata.ai/errors/upgrade-required)). |
-| 403 | `forbidden` | Video privado, con login, solo para miembros, con restricción de edad o geobloqueado ([Transcript, "Video Accessibility"](https://docs.supadata.ai/get-transcript)). |
-| 404 | `not-found` | El video no existe o es privado; también un job vencido ([Transcript](https://docs.supadata.ai/get-transcript)). |
-| 429 | `limit-exceeded` | Mirar `details`: `Global request rate limit was exceeded.` o `Request rate limit on current plan was exceeded.` → esperar y reintentar. `Plan usage limit was exceeded.` → se acabaron los créditos del mes; reintentar no sirve ([Limit Exceeded](https://docs.supadata.ai/errors/limit-exceeded)). |
-| 500 | `internal-error` | No se cobra y reintentar es seguro. Incluye el caso "el video tiene subtítulos pero no pudimos traerlos" ([Internal Error](https://docs.supadata.ai/errors/internal-error)). |
-| 502 | `upstream-error` | Solo para scraping web ([Error Codes](https://docs.supadata.ai/errors/list)). |
+| HTTP | `error`                  | Qué hacer                                                                                                                                                                                                                                                                                            |
+| ---- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 206  | `transcript-unavailable` | No reintentar: es una respuesta definitiva, el video no tiene subtítulos ([error](https://docs.supadata.ai/errors/transcript-unavailable)).                                                                                                                                                          |
+| 400  | `invalid-request`        | Corregir el pedido ([Error Codes](https://docs.supadata.ai/errors/list)).                                                                                                                                                                                                                            |
+| 401  | `unauthorized`           | Key faltante, inválida o vencida ([Unauthorized](https://docs.supadata.ai/errors/unauthorized)).                                                                                                                                                                                                     |
+| 402  | `upgrade-required`       | El endpoint no está en el plan ([Upgrade Required](https://docs.supadata.ai/errors/upgrade-required)).                                                                                                                                                                                               |
+| 403  | `forbidden`              | Video privado, con login, solo para miembros, con restricción de edad o geobloqueado ([Transcript, "Video Accessibility"](https://docs.supadata.ai/get-transcript)).                                                                                                                                 |
+| 404  | `not-found`              | El video no existe o es privado; también un job vencido ([Transcript](https://docs.supadata.ai/get-transcript)).                                                                                                                                                                                     |
+| 429  | `limit-exceeded`         | Mirar `details`: `Global request rate limit was exceeded.` o `Request rate limit on current plan was exceeded.` → esperar y reintentar. `Plan usage limit was exceeded.` → se acabaron los créditos del mes; reintentar no sirve ([Limit Exceeded](https://docs.supadata.ai/errors/limit-exceeded)). |
+| 500  | `internal-error`         | No se cobra y reintentar es seguro. Incluye el caso "el video tiene subtítulos pero no pudimos traerlos" ([Internal Error](https://docs.supadata.ai/errors/internal-error)).                                                                                                                         |
+| 502  | `upstream-error`         | Solo para scraping web ([Error Codes](https://docs.supadata.ai/errors/list)).                                                                                                                                                                                                                        |
 
 La doc no menciona un header `Retry-After` ni una política de backoff concreta: solo "back off and retry" para 429 y "retry after a few moments" para 500 ([Limit Exceeded](https://docs.supadata.ai/errors/limit-exceeded), [Internal Error](https://docs.supadata.ai/errors/internal-error)).
 

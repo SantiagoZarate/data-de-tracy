@@ -8,7 +8,7 @@ Cómo está armado un Episodio, para separar sus Historias con un LLM. Sale de l
 | #304 "Superespecial Halloween" | `foJC1WxCXLM` | 25:56 | principal + Bonus Track |
 | #307 "Culebrón italiano" | `DPXp1zDXD2Q` | 16:29 | principal |
 
-Hay que revisarlo con la muestra de ~20 Episodios antes del backfill.
+Se confirmó con una muestra de 16 Episodios (#67 a #143, 2026-11-27): la estructura se repite y los cortes del LLM salieron bien.
 
 ## Secciones
 
@@ -23,7 +23,7 @@ Hay que revisarlo con la muestra de ~20 Episodios antes del backfill.
 | 7 | Comentarios | Comentan el Bonus Track. | #59, #304 |
 | 8 | Cierre | Agradecen a quien mandó la anécdota y al equipo ("Gracias … por la edición", "…por la postproducción de sonido") y se despiden ("nos vemos el próximo domingo"). | los tres |
 
-Muy rara vez un Episodio trae más de un Bonus Track: se repiten las secciones 6 y 7.
+Muy rara vez un Episodio trae más de un Bonus Track: se repiten las secciones 6 y 7. Pasa en #100 "Atropellar y huir" (`7DiB6_P9jd4`), que tiene tres Historias.
 
 ## Cómo se ve una Historia
 

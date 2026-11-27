@@ -136,12 +136,12 @@ async function StoryDetail({ params }: Pick<PageProps<"/historias/[id]">, "param
         {relatedStories.length === 0 ? (
           <p className="metadata">Todavía no hay otras Historias con estas Temáticas.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-1">
             {relatedStories.map((related) => (
               <li key={related.id}>
                 <TransitionLink
                   href={`/historias/${related.id}`}
-                  className="card-link group grid grid-cols-[6rem_minmax(0,1fr)] items-start gap-3 p-2"
+                  className="card-link grid grid-cols-[6rem_minmax(0,1fr)] items-start gap-3 p-2"
                 >
                   <Image
                     src={`https://i.ytimg.com/vi/${encodeURIComponent(related.episode.videoId)}/mqdefault.jpg`}
@@ -152,7 +152,7 @@ async function StoryDetail({ params }: Pick<PageProps<"/historias/[id]">, "param
                     className="aspect-video w-full rounded-md bg-muted object-cover"
                   />
                   <div>
-                    <p className="text-sm font-semibold group-hover:underline">{related.title}</p>
+                    <p className="text-sm font-semibold">{related.title}</p>
                     <p className="metadata mt-1 text-xs">
                       Episodio #{related.episode.number}
                       {related.type === "bonus" && " · Bonus Track"}

@@ -1,27 +1,6 @@
 import { generateText, Output, type LanguageModel } from "ai";
 import { z } from "zod";
-
-export const THEMES = [
-  "Terror",
-  "Paranormal",
-  "Amor",
-  "Desamor",
-  "Familia",
-  "Amistad",
-  "Bizarro",
-  "Humor",
-  "Crimen",
-  "Trabajo",
-  "Viajes",
-  "Escuela",
-  "Famosos",
-  "Drogas",
-  "Triste",
-  "Polémica",
-  "Inmoral",
-] as const;
-
-export const STORY_TYPES = ["principal", "bonus"] as const;
+import { STORY_TYPES, THEMES } from "../story-metadata.ts";
 
 export const storySchema = z.object({
   type: z.enum(STORY_TYPES),

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 import type { Db } from "./index.ts";
-import { getCatalogCounts, getStoryById, listStoriesPage } from "./queries.ts";
+import { getCatalogCounts, getStoryById, listStoriesPage, listStoryCountries } from "./queries.ts";
 import { saveEpisode } from "./save-episode.ts";
 import { createTestDb } from "./test-db.ts";
 
@@ -112,4 +112,65 @@ test("busca una Historia por su ID y devuelve sus datos públicos", async () => 
     themes: [{ theme: "Humor" }],
   });
   assert.equal(await getStoryById(db, 999), undefined);
+});
+
+test("combina país y tipo con cualquiera de las Temáticas antes de contar y paginar", async () => {
+  const bonus = { ...story, type: "bonus", storyCountry: "AR", senderCountry: "UY" } as const;
+  await saveEpisode(db, {
+    status: "processed",
+    videoId: "nuevo000000",
+    number: 307,
+    title: "NUEVO",
+    needsTitleReview: false,
+    stories: [
+      { ...bonus, type: "principal", title: "PRINCIPAL", themes: ["Humor"] },
+      { ...bonus, title: "DOS TEMÁTICAS", themes: ["Humor", "Terror"] },
+      { ...bonus, title: "SOLO HUMOR", themes: ["Humor"] },
+      { ...bonus, title: "OTRA TEMÁTICA", themes: ["Amor"] },
+    ],
+  });
+  await saveEpisode(db, {
+    status: "processed",
+    videoId: "viejo000000",
+    number: 59,
+    title: "VIEJO",
+    needsTitleReview: false,
+    stories: [
+      { ...bonus, title: "SOLO TERROR", themes: ["Terror"] },
+      { ...bonus, storyCountry: "MX", senderCountry: "AR", title: "OTRO PAÍS", themes: ["Terror"] },
+      { ...bonus, storyCountry: null, senderCountry: "AR", title: "SIN PAÍS", themes: ["Terror"] },
+    ],
+  });
+
+  const filters = {
+    country: "AR",
+    themes: ["Humor", "Terror"],
+    type: "bonus",
+  } satisfies Parameters<typeof getCatalogCounts>[1];
+  assert.deepEqual(await getCatalogCounts(db, filters), { storyCount: 3, episodeCount: 2 });
+  const firstPage = await listStoriesPage(db, 1, 2, filters);
+  const secondPage = await listStoriesPage(db, 2, 2, filters);
+  assert.deepEqual(
+    firstPage.map(({ title }) => title),
+    ["DOS TEMÁTICAS", "SOLO HUMOR"],
+  );
+  assert.deepEqual(
+    secondPage.map(({ title }) => title),
+    ["SOLO TERROR"],
+  );
+  const oldestFirst = await listStoriesPage(db, 1, 2, filters, "antiguas");
+  const oldestSecond = await listStoriesPage(db, 2, 2, filters, "antiguas");
+  assert.deepEqual(
+    oldestFirst.map(({ title }) => title),
+    ["SOLO TERROR", "DOS TEMÁTICAS"],
+  );
+  assert.deepEqual(
+    oldestSecond.map(({ title }) => title),
+    ["SOLO HUMOR"],
+  );
+  assert.deepEqual(await getCatalogCounts(db, { country: "UY" }), {
+    storyCount: 0,
+    episodeCount: 0,
+  });
+  assert.deepEqual((await listStoryCountries(db)).sort(), ["AR", "MX"]);
 });

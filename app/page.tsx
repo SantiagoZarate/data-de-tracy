@@ -3,25 +3,38 @@ import { cacheLife } from "next/cache";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { getCatalogCounts, listStoriesPage, type CatalogStory } from "@/src/db/queries.ts";
+import {
+  getCatalogCounts,
+  listStoriesPage,
+  listStoryCountries,
+  type CatalogStory,
+} from "@/src/db/queries.ts";
 import { db } from "@/src/db/server.ts";
+import type { StoryFilters, StorySort } from "@/src/story-metadata.ts";
 import { CountryFlag, countryNames } from "@/src/ui/country-flag.tsx";
+import { StoryFilterForm } from "@/src/ui/story-filter-form.tsx";
 import { StoryPagination } from "@/src/ui/story-pagination.tsx";
-import { storyPageHref } from "@/src/ui/story-page-url.ts";
+import { parseStoryFilters, parseStorySort, storyPageHref } from "@/src/ui/story-page-url.ts";
 import { ThemeSwitcher } from "@/src/ui/theme-switcher.tsx";
 
 const PAGE_SIZE = 12;
 
-async function getCounts() {
+async function getCounts(filters: StoryFilters) {
   "use cache";
   cacheLife("hours");
-  return getCatalogCounts(db);
+  return getCatalogCounts(db, filters);
 }
 
-async function getStories(page: number) {
+async function getStories(page: number, filters: StoryFilters, sort: StorySort) {
   "use cache";
   cacheLife("hours");
-  return listStoriesPage(db, page, PAGE_SIZE);
+  return listStoriesPage(db, page, PAGE_SIZE, filters, sort);
+}
+
+async function getCountries() {
+  "use cache";
+  cacheLife("hours");
+  return listStoryCountries(db);
 }
 
 export default function Home({ searchParams }: PageProps<"/">) {
@@ -40,40 +53,54 @@ export default function Home({ searchParams }: PageProps<"/">) {
 }
 
 async function StoryGrid({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
-  const { pagina } = await searchParams;
+  const params = await searchParams;
+  const filters = parseStoryFilters(params);
+  const sort = parseStorySort(params);
+  const { pagina } = params;
   const page = typeof pagina === "string" ? Number(pagina) : 1;
+  const firstPageHref = storyPageHref(1, filters, sort);
   if (
     pagina !== undefined &&
     (String(page) !== pagina || !Number.isSafeInteger(page) || page < 1)
   ) {
-    redirect(storyPageHref(1));
+    redirect(firstPageHref);
   }
 
-  const { storyCount, episodeCount } = await getCounts();
+  const [{ storyCount, episodeCount }, countries] = await Promise.all([
+    getCounts(filters),
+    getCountries(),
+  ]);
   const pageCount = Math.max(1, Math.ceil(storyCount / PAGE_SIZE));
-  if (page > pageCount) redirect(storyPageHref(pageCount));
+  if (page > pageCount) redirect(storyPageHref(pageCount, filters, sort));
 
-  const stories = await getStories(page);
-  if (stories.length === 0) {
-    if (page > 1) redirect(storyPageHref(1));
-    return <p>Todavía no hay Historias en la base.</p>;
-  }
+  const stories = storyCount > 0 ? await getStories(page, filters, sort) : [];
+  if (stories.length === 0 && page > 1) redirect(firstPageHref);
+
+  const summary = `${storyCount} ${storyCount === 1 ? "Historia" : "Historias"} de ${episodeCount} ${episodeCount === 1 ? "Episodio" : "Episodios"}.`;
+  const emptyMessage =
+    storyPageHref(1, filters) === "/"
+      ? "Todavía no hay Historias en la base."
+      : "No hay Historias que coincidan con estos filtros.";
 
   return (
     <>
-      <p className="metadata mb-5">
-        {storyCount} {storyCount === 1 ? "Historia" : "Historias"} de {episodeCount}{" "}
-        {episodeCount === 1 ? "Episodio" : "Episodios"}.
-      </p>
-      <ol
-        start={(page - 1) * PAGE_SIZE + 1}
-        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-      >
-        {stories.map((story) => (
-          <StoryCard key={story.id} story={story} />
-        ))}
-      </ol>
-      {pageCount > 1 && <StoryPagination page={page} pageCount={pageCount} />}
+      <StoryFilterForm filters={filters} countries={countries} page={page} sort={sort} />
+      <output className="metadata mb-5 block">{stories.length > 0 ? summary : emptyMessage}</output>
+      {stories.length > 0 && (
+        <>
+          <ol
+            start={(page - 1) * PAGE_SIZE + 1}
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            {stories.map((story) => (
+              <StoryCard key={story.id} story={story} />
+            ))}
+          </ol>
+          {pageCount > 1 && (
+            <StoryPagination page={page} pageCount={pageCount} filters={filters} sort={sort} />
+          )}
+        </>
+      )}
     </>
   );
 }

@@ -1,5 +1,16 @@
+import {
+  and,
+  count,
+  countDistinct,
+  EmptyFilter,
+  eq,
+  exists,
+  inArray,
+  isNotNull,
+} from "drizzle-orm";
+import type { StoryFilters, StorySort } from "../story-metadata.ts";
 import type { Db } from "./index.ts";
-import { episodes, stories } from "./schema.ts";
+import { episodes, stories, storyThemes } from "./schema.ts";
 
 const publicStoryFields = {
   columns: {
@@ -17,15 +28,60 @@ const publicStoryFields = {
   },
 } as const;
 
-export async function getCatalogCounts(db: Db) {
+function storyFilterWhere(db: Db, story: typeof stories, { country, themes, type }: StoryFilters) {
+  return and(
+    country ? eq(story.storyCountry, country) : undefined,
+    type ? eq(story.type, type) : undefined,
+    themes?.length
+      ? exists(
+          db
+            .select({ storyId: storyThemes.storyId })
+            .from(storyThemes)
+            .where(and(eq(storyThemes.storyId, story.id), inArray(storyThemes.theme, themes))),
+        )
+      : undefined,
+  );
+}
+
+export async function getCatalogCounts(db: Db, filters: StoryFilters = {}) {
+  const where = storyFilterWhere(db, stories, filters);
+  if (where) {
+    const [counts] = await db
+      .select({ storyCount: count(), episodeCount: countDistinct(stories.episodeVideoId) })
+      .from(stories)
+      .where(where);
+    return counts;
+  }
+
   const [storyCount, episodeCount] = await Promise.all([db.$count(stories), db.$count(episodes)]);
   return { storyCount, episodeCount };
 }
 
-export function listStoriesPage(db: Db, page: number, pageSize: number) {
+export async function listStoryCountries(db: Db) {
+  const rows = await db
+    .selectDistinct({ country: stories.storyCountry })
+    .from(stories)
+    .where(isNotNull(stories.storyCountry));
+  return rows
+    .map(({ country }) => country)
+    .filter((country): country is string => country !== null && /^[A-Z]{2}$/.test(country));
+}
+
+export function listStoriesPage(
+  db: Db,
+  page: number,
+  pageSize: number,
+  filters: StoryFilters = {},
+  sort: StorySort = "recientes",
+) {
   return db.query.stories.findMany({
     ...publicStoryFields,
-    orderBy: { episode: { number: "desc" }, episodeVideoId: "asc", position: "asc" },
+    where: { RAW: (story) => storyFilterWhere(db, story, filters) ?? EmptyFilter },
+    orderBy: {
+      episode: { number: sort === "antiguas" ? "asc" : "desc" },
+      episodeVideoId: "asc",
+      position: "asc",
+    },
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });

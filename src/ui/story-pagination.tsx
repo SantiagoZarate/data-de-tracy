@@ -12,6 +12,7 @@ import {
 import { TransitionLink } from "glimm/next";
 import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
+import type { StoryFilters, StorySort } from "../story-metadata.ts";
 import { storyPageHref } from "./story-page-url.ts";
 
 function PageLink({ href, children, ...props }: ComponentProps<"a">) {
@@ -24,8 +25,19 @@ function PageLink({ href, children, ...props }: ComponentProps<"a">) {
   );
 }
 
-export function StoryPagination({ page, pageCount }: { page: number; pageCount: number }) {
+export function StoryPagination({
+  page,
+  pageCount,
+  filters,
+  sort,
+}: {
+  page: number;
+  pageCount: number;
+  filters: StoryFilters;
+  sort: StorySort;
+}) {
   const router = useRouter();
+  const getHref = (next: number) => storyPageHref(next, filters, sort);
 
   return (
     <Pagination
@@ -33,9 +45,9 @@ export function StoryPagination({ page, pageCount }: { page: number; pageCount: 
       className="mt-8"
       page={page}
       pageCount={pageCount}
-      getHref={storyPageHref}
+      getHref={getHref}
       onPageChange={(next, details) => {
-        if (details.reason === "imperative") router.push(storyPageHref(next));
+        if (details.reason === "imperative") router.push(getHref(next));
       }}
     >
       <PaginationList className="flex flex-wrap justify-center">

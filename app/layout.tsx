@@ -1,3 +1,4 @@
+import { GlimmProvider, InterceptLinks } from "glimm/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppPreferences } from "@/src/ui/app-preferences.tsx";
@@ -28,13 +29,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AppPreferences>
-          <div className="border-b bg-muted px-6 py-2.5 text-center text-sm text-muted-foreground">
-            Sitio hecho por fans. No es oficial ni está asociado al podcast.
-          </div>
-          {children}
-        </AppPreferences>
-        {process.env.NODE_ENV === "development" && <ReactGrab />}
+        <GlimmProvider palette="prism">
+          <InterceptLinks />
+          <AppPreferences>
+            <div className="border-b bg-muted px-6 py-2.5 text-center text-sm text-muted-foreground">
+              Sitio hecho por fans. No es oficial ni está asociado al podcast.
+            </div>
+            {children}
+          </AppPreferences>
+          {process.env.NODE_ENV === "development" && <ReactGrab />}
+        </GlimmProvider>
       </body>
     </html>
   );

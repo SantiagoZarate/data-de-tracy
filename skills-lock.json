@@ -13,6 +13,13 @@
       "sourceType": "local",
       "computedHash": "c91331769b0cf9a9f5592d9ea5cf0998fdfcd81c4ed1fb0d8784ada819a797e9"
     },
+    "emil-design-eng": {
+      "source": "emilkowalski/skills",
+      "commit": "64eb3deb9a5fbfa041faf783e0bc3fd635872e9c",
+      "sourceType": "github",
+      "skillPath": "skills/emil-design-eng/SKILL.md",
+      "computedHash": "e1b377ccde1d32743d1d3f7d8626629deb8055c9114d180c184697928cc66cc6"
+    },
     "grill-with-docs": {
       "source": "mattpocock/skills",
       "commit": "6f7f7831a625f040a8e06a0e7954826b87ce775a",

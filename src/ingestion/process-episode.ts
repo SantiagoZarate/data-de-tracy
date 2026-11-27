@@ -1,73 +1,88 @@
 import type { LanguageModel } from "ai";
-import { separarHistorias, type Historia } from "./historias.ts";
-import { obtenerTituloVideo, obtenerTranscripcion } from "./supadata.ts";
-import type { DecisionEpisodio } from "./jev.ts";
-import { extraerTituloLibre, parsearTituloEpisodio, type TituloEpisodio } from "./titulo.ts";
+import type { EpisodeDecision } from "./jev.ts";
+import { splitStories, type Story } from "./stories.ts";
+import { getTranscript, getVideoTitle } from "./supadata.ts";
+import { extractFreeformTitle, parseEpisodeTitle, type EpisodeTitle } from "./title.ts";
 
-export interface ProcesarEpisodioDeps {
+export interface ProcessEpisodeDeps {
   supadataApiKey: string;
   model: LanguageModel;
   /**
    * Decide si un título con formato desconocido es de un Episodio. Solo se llama
    * cuando el título no matchea ningún formato conocido. Sin esto, esos videos se mandan a revisión.
    */
-  esEpisodio?: (tituloVideo: string) => Promise<DecisionEpisodio>;
+  isEpisode?: (videoTitle: string) => Promise<EpisodeDecision>;
 }
 
-export type ResultadoProcesamiento =
+export type ProcessingResult =
   | {
-      estado: "procesado";
+      status: "processed";
       videoId: string;
-      numero: number;
-      titulo: string;
+      number: number;
+      title: string;
       /** El título no tenía formato conocido: revisar número y título a mano. */
-      revisarTitulo: boolean;
-      historias: Historia[];
+      needsTitleReview: boolean;
+      stories: Story[];
     }
-  | { estado: "descartado"; videoId: string; motivo: string }
+  | { status: "discarded"; videoId: string; reason: string }
   /** No se pudo decidir si es un Episodio: revisar a mano. No se bajó la transcripción. */
-  | { estado: "revisar"; videoId: string; motivo: string };
+  | { status: "review"; videoId: string; reason: string };
 
 /**
  * Procesa un video de YouTube de punta a punta: título, transcripción,
  * separación en Historias y metadatos. No depende de dónde corre
  * (CLI, backfill o Trigger.dev).
  */
-export async function procesarEpisodio(videoId: string, deps: ProcesarEpisodioDeps): Promise<ResultadoProcesamiento> {
-  const tituloVideo = await obtenerTituloVideo(deps.supadataApiKey, videoId);
+export async function processEpisode(
+  videoId: string,
+  deps: ProcessEpisodeDeps,
+): Promise<ProcessingResult> {
+  const videoTitle = await getVideoTitle(deps.supadataApiKey, videoId);
 
-  let episodio: TituloEpisodio | null = parsearTituloEpisodio(tituloVideo);
-  const revisarTitulo = !episodio;
-  if (!episodio) {
-    const decision = await decidirSiEsEpisodio(tituloVideo, deps.esEpisodio);
+  let episode: EpisodeTitle | null = parseEpisodeTitle(videoTitle);
+  const needsTitleReview = !episode;
+  if (!episode) {
+    const decision = await decideIfEpisode(videoTitle, deps.isEpisode);
     if (decision === "no") {
-      return { estado: "descartado", videoId, motivo: `"${tituloVideo}" no es un Episodio` };
+      return { status: "discarded", videoId, reason: `"${videoTitle}" no es un Episodio` };
     }
-    if (decision === "revisar") {
-      return { estado: "revisar", videoId, motivo: `No se sabe si "${tituloVideo}" es un Episodio` };
+    if (decision === "review") {
+      return {
+        status: "review",
+        videoId,
+        reason: `No se sabe si "${videoTitle}" es un Episodio`,
+      };
     }
-    episodio = extraerTituloLibre(tituloVideo);
-    if (!episodio) {
-      return { estado: "revisar", videoId, motivo: `"${tituloVideo}" parece un Episodio pero no tiene número` };
+    episode = extractFreeformTitle(videoTitle);
+    if (!episode) {
+      return {
+        status: "review",
+        videoId,
+        reason: `"${videoTitle}" parece un Episodio pero no tiene número`,
+      };
     }
   }
 
-  const segmentos = await obtenerTranscripcion(deps.supadataApiKey, videoId);
-  const historias = await separarHistorias({ model: deps.model, tituloEpisodio: episodio.titulo, segmentos });
+  const segments = await getTranscript(deps.supadataApiKey, videoId);
+  const stories = await splitStories({
+    model: deps.model,
+    episodeTitle: episode.title,
+    segments,
+  });
 
-  return { estado: "procesado", videoId, ...episodio, revisarTitulo, historias };
+  return { status: "processed", videoId, ...episode, needsTitleReview, stories };
 }
 
 /** Si el clasificador falta o falla, el video va a revisión: nunca se lo trata como Episodio. */
-async function decidirSiEsEpisodio(
-  tituloVideo: string,
-  esEpisodio: ProcesarEpisodioDeps["esEpisodio"],
-): Promise<DecisionEpisodio> {
-  if (!esEpisodio) return "revisar";
+async function decideIfEpisode(
+  videoTitle: string,
+  isEpisode: ProcessEpisodeDeps["isEpisode"],
+): Promise<EpisodeDecision> {
+  if (!isEpisode) return "review";
   try {
-    return await esEpisodio(tituloVideo);
+    return await isEpisode(videoTitle);
   } catch (error) {
-    console.error(`El clasificador de Episodios falló para "${tituloVideo}":`, error);
-    return "revisar";
+    console.error(`El clasificador de Episodios falló para "${videoTitle}":`, error);
+    return "review";
   }
 }

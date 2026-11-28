@@ -22,7 +22,10 @@ export const STORY_TYPES = ["principal", "bonus"] as const;
 
 export type StorySort = "recientes" | "antiguas";
 
+export const MAX_STORY_QUERY_LENGTH = 160;
+
 export interface StoryFilters {
+  query?: string;
   country?: string;
   themes?: (typeof THEMES)[number][];
   type?: (typeof STORY_TYPES)[number];

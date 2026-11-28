@@ -49,6 +49,7 @@ export const stories = sqliteTable(
     endSeconds: integer("end_seconds").notNull(),
     title: text("title").notNull(),
     summary: text("summary").notNull(),
+    transcript: text("transcript"),
     /** Código ISO 3166-1 alfa-2 de dónde ocurre la Historia; null si no se menciona. */
     storyCountry: text("story_country"),
     /** Código ISO 3166-1 alfa-2 de dónde es quien la envió; null si no se menciona. */

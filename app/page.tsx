@@ -67,20 +67,27 @@ async function StoryGrid({ searchParams }: Pick<PageProps<"/">, "searchParams">)
   }
 
   const [{ storyCount, episodeCount }, countries] = await Promise.all([
-    getCounts(filters),
+    filters.query ? getCatalogCounts(db, filters) : getCounts(filters),
     getCountries(),
   ]);
   const pageCount = Math.max(1, Math.ceil(storyCount / PAGE_SIZE));
   if (page > pageCount) redirect(storyPageHref(pageCount, filters, sort));
 
-  const stories = storyCount > 0 ? await getStories(page, filters, sort) : [];
+  const stories =
+    storyCount === 0
+      ? []
+      : filters.query
+        ? await listStoriesPage(db, page, PAGE_SIZE, filters, sort)
+        : await getStories(page, filters, sort);
   if (stories.length === 0 && page > 1) redirect(firstPageHref);
 
   const summary = `${storyCount} ${storyCount === 1 ? "Historia" : "Historias"} de ${episodeCount} ${episodeCount === 1 ? "Episodio" : "Episodios"}.`;
   const emptyMessage =
     storyPageHref(1, filters) === "/"
       ? "Todavía no hay Historias en la base."
-      : "No hay Historias que coincidan con estos filtros.";
+      : filters.query
+        ? "No hay Historias que coincidan con esta búsqueda."
+        : "No hay Historias que coincidan con estos filtros.";
 
   return (
     <>

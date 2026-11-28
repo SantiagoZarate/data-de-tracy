@@ -66,11 +66,18 @@ export async function saveEpisode(db: Db, episode: ProcessedEpisode): Promise<vo
         endSeconds,
         title,
         summary,
+        transcript,
         storyCountry,
         senderCountry,
         themes,
       } = story;
       const storySegment = { type, startSeconds, endSeconds };
+      // Un JSON viejo puede conservar el texto guardado si describe el mismo tramo.
+      const sameSegment =
+        saved?.type === type &&
+        saved.startSeconds === startSeconds &&
+        saved.endSeconds === endSeconds;
+      const storyTranscript = transcript ?? (sameSegment ? saved.transcript : null);
       const [{ id }] = await tx
         .insert(stories)
         .values({
@@ -79,6 +86,7 @@ export async function saveEpisode(db: Db, episode: ProcessedEpisode): Promise<vo
           ...storySegment,
           title,
           summary,
+          transcript: storyTranscript,
           storyCountry,
           senderCountry,
         })
@@ -88,6 +96,7 @@ export async function saveEpisode(db: Db, episode: ProcessedEpisode): Promise<vo
             ...storySegment,
             title: saved?.titleCorrected ? undefined : title,
             summary: saved?.summaryCorrected ? undefined : summary,
+            transcript: storyTranscript,
             storyCountry: saved?.storyCountryCorrected ? undefined : storyCountry,
             senderCountry: saved?.senderCountryCorrected ? undefined : senderCountry,
           },

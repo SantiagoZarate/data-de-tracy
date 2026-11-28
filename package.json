@@ -13,6 +13,7 @@
     "format:check": "oxfmt --check",
     "process-episode": "node --env-file=.env.local scripts/process-episode.ts",
     "reprocess-episodes": "node --env-file-if-exists=.env.local scripts/reprocess-episodes.ts",
+    "backfill-transcripts": "node --env-file-if-exists=.env.local scripts/backfill-transcripts.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:dev": "turso dev --db-file .datos/local.db",

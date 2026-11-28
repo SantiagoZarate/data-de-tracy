@@ -8,6 +8,7 @@ import {
   CommandGroupLabel,
   CommandInput,
   CommandItem,
+  CommandItemIcon,
   CommandList,
   CommandPage,
   createCommandController,
@@ -15,6 +16,7 @@ import {
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/react/popover";
 import { useId, useState, type Ref } from "react";
 import { THEMES, type StoryFilters } from "../story-metadata.ts";
+import { CountryFlag } from "./country-flag.tsx";
 import { SearchIcon } from "./search-icon.tsx";
 
 const spanish = new Intl.Collator("es");
@@ -97,14 +99,19 @@ export function StoryFilterPicker({
         value={`${group.value}:${value}`}
         label={label}
         keywords={[group.label]}
-        className="min-h-10 justify-between px-3"
+        className="min-h-10 px-3"
         onSelect={() => onChange(changes)}
       >
+        {group.value === "country" && value && (
+          <CommandItemIcon className="w-5">
+            <CountryFlag code={value} />
+          </CommandItemIcon>
+        )}
         {label}
         {checked && (
           <>
             <span className="sr-only">, aplicado</span>
-            <span aria-hidden="true" className="text-primary">
+            <span aria-hidden="true" className="ml-auto text-primary">
               ✓
             </span>
           </>

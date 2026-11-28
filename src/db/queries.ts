@@ -7,8 +7,9 @@ import {
   exists,
   inArray,
   isNotNull,
+  sql,
 } from "drizzle-orm";
-import type { StoryFilters, StorySort } from "../story-metadata.ts";
+import { MAX_STORY_QUERY_LENGTH, type StoryFilters, type StorySort } from "../story-metadata.ts";
 import type { Db } from "./index.ts";
 import { episodes, stories, storyThemes } from "./schema.ts";
 
@@ -28,8 +29,24 @@ const publicStoryFields = {
   },
 } as const;
 
-function storyFilterWhere(db: Db, story: typeof stories, { country, themes, type }: StoryFilters) {
+function storySearchWhere(story: typeof stories, query: string | undefined) {
+  const text = query?.trim().slice(0, MAX_STORY_QUERY_LENGTH);
+  if (!text) return;
+
+  const words = text.normalize("NFC").match(/[\p{L}\p{N}]+/gu);
+  if (!words) return sql`0`;
+
+  const match = words.map((word) => `"${word}"*`).join(" AND ");
+  return inArray(story.id, sql`(select rowid from stories_fts where stories_fts match ${match})`);
+}
+
+function storyFilterWhere(
+  db: Db,
+  story: typeof stories,
+  { query, country, themes, type }: StoryFilters,
+) {
   return and(
+    storySearchWhere(story, query),
     country ? eq(story.storyCountry, country) : undefined,
     type ? eq(story.type, type) : undefined,
     themes?.length

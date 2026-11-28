@@ -3,6 +3,7 @@ import { afterEach, beforeEach, test } from "node:test";
 import { eq } from "drizzle-orm";
 import type { Story } from "../ingestion/stories.ts";
 import type { Db } from "./index.ts";
+import { listStoriesPage } from "./queries.ts";
 import { saveEpisode, type ProcessedEpisode } from "./save-episode.ts";
 import { stories, storyThemes } from "./schema.ts";
 import { createTestDb } from "./test-db.ts";
@@ -30,7 +31,7 @@ function story(changes: Partial<Story> = {}): Story {
   };
 }
 
-function episode(stories: Story[]): ProcessedEpisode {
+function episode(stories: ProcessedEpisode["stories"]): ProcessedEpisode {
   return {
     status: "processed",
     videoId: "7DiB6_P9jd4",
@@ -185,6 +186,44 @@ test("si al re-procesar hay menos Historias, borra las que sobran", async () => 
   );
   const themes = await db.query.storyThemes.findMany();
   assert.equal(themes.length, 2, "las Temáticas de la Historia borrada se van en cascada");
+});
+
+test("el índice conserva correcciones y se actualiza al guardar o quitar Historias", async () => {
+  const principal = story();
+  await saveEpisode(
+    db,
+    episode([
+      { ...principal, transcript: "Jirafa" },
+      { ...story({ type: "bonus" }), transcript: "Cocodrilo" },
+    ]),
+  );
+  const [
+    {
+      stories: [saved, bonus],
+    },
+  ] = await read();
+  await db
+    .update(stories)
+    .set({ title: "Título corregido", titleCorrected: true })
+    .where(eq(stories.id, saved.id));
+
+  const ids = async (query: string) =>
+    (await listStoriesPage(db, 1, 12, { query })).map(({ id }) => id);
+  assert.deepEqual(await ids("corregido"), [saved.id]);
+  assert.deepEqual(await ids("choque"), [bonus.id]);
+
+  await saveEpisode(db, episode([principal]));
+  assert.deepEqual(await ids("jirafa"), [saved.id]);
+  assert.deepEqual(await ids("cocodrilo"), []);
+
+  await saveEpisode(db, episode([{ ...principal, transcript: "Elefante" }]));
+  assert.deepEqual(await ids("corregido"), [saved.id]);
+  assert.deepEqual(await ids("choque"), []);
+  assert.deepEqual(await ids("jirafa"), []);
+  assert.deepEqual(await ids("elefante"), [saved.id]);
+
+  await saveEpisode(db, episode([{ ...principal, startSeconds: 290 }]));
+  assert.deepEqual(await ids("elefante"), []);
 });
 
 test("deja intacto el Episodio si una Historia corregida desaparece o cambia de posición", async () => {

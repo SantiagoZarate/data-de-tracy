@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@ui-sdk/react/button";
+import { Field, FieldLabel } from "@ui-sdk/react/field";
+import { Input, InputClear, InputGroup } from "@ui-sdk/react/input";
 import {
   Select,
   SelectContent,
@@ -10,23 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@ui-sdk/react/select";
-import { TransitionLink } from "glimm/next";
 import Form from "next/form";
-import { useState } from "react";
-import { THEMES, type StoryFilters, type StorySort } from "../story-metadata.ts";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { MAX_STORY_QUERY_LENGTH, type StoryFilters, type StorySort } from "../story-metadata.ts";
 import { countryNames } from "./country-flag.tsx";
+import { SearchIcon } from "./search-icon.tsx";
+import { StoryFilterPicker, storyTypeOptions } from "./story-filter-picker.tsx";
 import { storyPageHref } from "./story-page-url.ts";
 
+const SEARCH_DEBOUNCE_MS = 300;
 const collator = new Intl.Collator("es");
-const themeOptions = [...THEMES].sort(collator.compare).map((theme) => ({
-  value: theme,
-  label: theme,
-}));
-const typeOptions = [
-  { value: "", label: "Todos los tipos" },
-  { value: "principal", label: "Principal" },
-  { value: "bonus", label: "Bonus Track" },
-];
 const sortOptions = [
   { value: "recientes", label: "Más recientes" },
   { value: "antiguas", label: "Más antiguas" },
@@ -34,47 +30,39 @@ const sortOptions = [
   { value: "peor-puntuadas", label: "Peor puntuadas (sin datos)", disabled: true },
 ];
 
-function FilterSelect({
-  name,
-  label,
-  options,
-  defaultValue,
-  placeholder,
-  multiple = false,
+function SortSelect({
+  value,
+  onChange,
 }: {
-  name: string;
-  label: string;
-  options: { value: string; label: string; disabled?: boolean }[];
-  placeholder?: string;
-} & ({ defaultValue: string; multiple?: false } | { defaultValue: string[]; multiple: true })) {
+  value: StorySort;
+  onChange: (sort: StorySort) => void;
+}) {
   const [animatePopup, setAnimatePopup] = useState(false);
 
   return (
-    <div className="grid min-w-0 gap-2">
-      <Select<string, boolean>
-        name={name}
-        items={options}
-        defaultValue={defaultValue}
-        multiple={multiple}
-        placeholder={placeholder}
+    <div className="col-start-3 row-start-1 flex items-center gap-2 justify-self-end max-[380px]:col-start-2 max-[380px]:row-start-2 sm:col-start-4">
+      <Select
+        name="orden"
+        items={sortOptions}
+        value={value}
+        onValueChange={(value) => onChange(value === "antiguas" ? "antiguas" : "recientes")}
         onOpenChange={(_, { source }) =>
           setAnimatePopup(source === "mouse" || source === "touch" || source === "pen")
         }
       >
-        <SelectLabel className="text-sm font-medium">{label}</SelectLabel>
-        <SelectTrigger className="h-11 w-full min-w-0 bg-card focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring">
-          <SelectValue className="truncate">
-            {({ label, labels }) =>
-              labels.length > 1 ? `${labels[0]} y ${labels.length - 1} más` : label || placeholder
-            }
-          </SelectValue>
+        <SelectLabel className="sr-only text-sm font-medium text-muted-foreground lg:not-sr-only">
+          Ordenar por
+        </SelectLabel>
+        <SelectTrigger className="h-10 min-w-0 bg-card px-2 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring sm:px-3">
+          <SelectValue />
         </SelectTrigger>
         <SelectContent
+          align="end"
           sideOffset={6}
           className="story-filter-popup max-h-[min(20rem,var(--available-height))] bg-card"
           data-animate={animatePopup ? "" : undefined}
         >
-          {options.map(({ value, label, disabled }) => (
+          {sortOptions.map(({ value, label, disabled }) => (
             <SelectItem
               key={value}
               value={value}
@@ -91,6 +79,8 @@ function FilterSelect({
   );
 }
 
+type StoryCriteria = { filters: StoryFilters; sort: StorySort };
+
 export function StoryFilterForm({
   filters,
   countries,
@@ -102,54 +92,163 @@ export function StoryFilterForm({
   page: number;
   sort: StorySort;
 }) {
-  const { country, themes, type } = filters;
-  const hasFilters = storyPageHref(1, filters) !== "/";
+  const router = useRouter();
+  const appliedHref = storyPageHref(page, filters, sort);
+  const [draft, setDraft] = useState<StoryCriteria>({ filters, sort });
+  const [isSearchPending, startSearch] = useTransition();
+  const [isFilterPending, startFilterChange] = useTransition();
+  const isPending = isSearchPending || isFilterPending;
+  const requestedHref = useRef(appliedHref);
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const filtersTrigger = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const cancelSearch = () => clearTimeout(searchTimer.current);
+    window.addEventListener("popstate", cancelSearch);
+    return () => {
+      window.removeEventListener("popstate", cancelSearch);
+      cancelSearch();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Solo una navegación externa reemplaza lo que se está escribiendo o seleccionando.
+    if (isPending || requestedHref.current === appliedHref) return;
+    clearTimeout(searchTimer.current);
+    requestedHref.current = appliedHref;
+    setDraft({ filters, sort });
+  }, [appliedHref, filters, sort, isPending]);
+
+  function showResults(next: StoryCriteria, history: "push" | "replace") {
+    clearTimeout(searchTimer.current);
+    const href = storyPageHref(1, next.filters, next.sort);
+    if (href === requestedHref.current) return;
+    requestedHref.current = href;
+    const startTransition = history === "replace" ? startSearch : startFilterChange;
+    startTransition(() => router[history](href, { scroll: false }));
+  }
+
+  function changeQuery(query: string) {
+    const next = { ...draft, filters: { ...draft.filters, query } };
+    setDraft(next);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => showResults(next, "replace"), SEARCH_DEBOUNCE_MS);
+  }
+
+  function changeCriteria(next: StoryCriteria) {
+    setDraft(next);
+    showResults(next, "push");
+  }
+
+  function changeFilters(changes: Partial<StoryFilters>) {
+    changeCriteria({ ...draft, filters: { ...draft.filters, ...changes } });
+  }
+
+  const { query, country, themes, type } = draft.filters;
   const countryOptions = [...new Set(country ? [...countries, country] : countries)]
     .map((code) => ({ value: code, label: countryNames.of(code) ?? code }))
     .sort((a, b) => collator.compare(a.label, b.label));
+  const typeLabel = storyTypeOptions.find(({ value }) => value === type)?.label;
+  const activeFilters = [
+    ...(country
+      ? [
+          {
+            key: "country",
+            name: "País",
+            label: countryNames.of(country) ?? country,
+            remove: { country: undefined },
+          },
+        ]
+      : []),
+    ...(themes ?? []).map((theme) => ({
+      key: `theme-${theme}`,
+      name: "Temática",
+      label: theme,
+      remove: { themes: themes?.filter((value) => value !== theme) },
+    })),
+    ...(typeLabel
+      ? [{ key: "type", name: "Tipo", label: typeLabel, remove: { type: undefined } }]
+      : []),
+  ];
 
   return (
     <Form
       action="/"
-      aria-label="Filtros de Historias"
-      className="mb-6 flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-end"
+      aria-label="Búsqueda y filtros de Historias"
+      className="mb-6 grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-2 max-[380px]:grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[clamp(9rem,22vw,16rem)_auto_minmax(0,1fr)_auto] sm:gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        showResults(draft, "replace");
+      }}
     >
-      <div
-        key={storyPageHref(page, filters, sort)}
-        className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <FilterSelect
-          name="pais"
-          label="País de la Historia"
-          options={[{ value: "", label: "Todos los países" }, ...countryOptions]}
-          defaultValue={country ?? ""}
-        />
-        <FilterSelect
-          name="tematica"
-          label="Temáticas"
-          options={themeOptions}
-          defaultValue={themes ?? []}
-          placeholder="Todas las Temáticas"
-          multiple
-        />
-        <FilterSelect
-          name="tipo"
-          label="Tipo de Historia"
-          options={typeOptions}
-          defaultValue={type ?? ""}
-        />
-        <FilterSelect name="orden" label="Ordenar por" options={sortOptions} defaultValue={sort} />
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Button type="submit" data-variant="solid">
-          Aplicar
-        </Button>
-        {hasFilters && (
-          <TransitionLink href={storyPageHref(1, {}, sort)} className="text-link text-sm">
-            Limpiar filtros
-          </TransitionLink>
-        )}
-      </div>
+      <Field name="q" className="col-start-1 row-start-1 min-w-0">
+        <FieldLabel className="sr-only">Palabras clave</FieldLabel>
+        <InputGroup className="h-10 w-full gap-0.5 bg-card px-1.5 focus-within:outline-2 focus-within:outline-offset-3 focus-within:outline-ring sm:gap-1 sm:px-2.5">
+          <SearchIcon />
+          <Input
+            type="search"
+            value={query ?? ""}
+            onValueChange={changeQuery}
+            maxLength={MAX_STORY_QUERY_LENGTH}
+            placeholder="Buscar Historias"
+            className="w-full min-w-0 [&::-webkit-search-cancel-button]:hidden"
+          />
+          {query && (
+            <InputClear aria-label="Limpiar búsqueda" className="size-6 sm:size-7">
+              <span aria-hidden="true" className="text-base">
+                ×
+              </span>
+            </InputClear>
+          )}
+          {isSearchPending && (
+            <svg
+              aria-hidden="true"
+              className="size-4 shrink-0 text-primary motion-safe:animate-spin"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
+              <circle cx="8" cy="8" r="5.5" className="opacity-25" />
+              <path d="M8 2.5A5.5 5.5 0 0 1 13.5 8" />
+            </svg>
+          )}
+        </InputGroup>
+        <output className="sr-only">{isSearchPending ? "Buscando Historias…" : ""}</output>
+      </Field>
+      <StoryFilterPicker
+        filters={draft.filters}
+        countries={countryOptions}
+        onChange={changeFilters}
+        triggerRef={filtersTrigger}
+      />
+      {activeFilters.length > 0 && (
+        <ul
+          aria-label="Filtros activos"
+          className="col-span-full flex flex-wrap gap-1.5 self-center max-[380px]:col-span-1 sm:col-span-1 sm:col-start-3 sm:row-start-1"
+        >
+          {activeFilters.map(({ key, name, label, remove }) => (
+            <li key={key} className="min-w-0">
+              <Button
+                type="button"
+                aria-label={`Quitar filtro de ${name}: ${label}`}
+                className="min-h-8 max-w-full gap-1.5 px-2.5 py-1 text-xs sm:text-sm"
+                onClick={() => {
+                  filtersTrigger.current?.focus();
+                  changeFilters(remove);
+                }}
+              >
+                <span className="truncate">{label}</span>
+                <span aria-hidden="true" className="shrink-0 text-base leading-none">
+                  ×
+                </span>
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <SortSelect value={draft.sort} onChange={(sort) => changeCriteria({ ...draft, sort })} />
     </Form>
   );
 }

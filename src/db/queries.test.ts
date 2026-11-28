@@ -115,7 +115,13 @@ test("busca una Historia por su ID y devuelve sus datos públicos", async () => 
 });
 
 test("combina país y tipo con cualquiera de las Temáticas antes de contar y paginar", async () => {
-  const bonus = { ...story, type: "bonus", storyCountry: "AR", senderCountry: "UY" } as const;
+  const bonus = {
+    ...story,
+    type: "bonus",
+    storyCountry: "AR",
+    senderCountry: "UY",
+    summary: "Un camión",
+  } as const;
   await saveEpisode(db, {
     status: "processed",
     videoId: "nuevo000000",
@@ -126,6 +132,7 @@ test("combina país y tipo con cualquiera de las Temáticas antes de contar y pa
       { ...bonus, type: "principal", title: "PRINCIPAL", themes: ["Humor"] },
       { ...bonus, title: "DOS TEMÁTICAS", themes: ["Humor", "Terror"] },
       { ...bonus, title: "SOLO HUMOR", themes: ["Humor"] },
+      { ...bonus, title: "OTRA PALABRA", summary: "Un auto", themes: ["Humor"] },
       { ...bonus, title: "OTRA TEMÁTICA", themes: ["Amor"] },
     ],
   });
@@ -136,13 +143,20 @@ test("combina país y tipo con cualquiera de las Temáticas antes de contar y pa
     title: "VIEJO",
     needsTitleReview: false,
     stories: [
-      { ...bonus, title: "SOLO TERROR", themes: ["Terror"] },
+      {
+        ...bonus,
+        title: "SOLO TERROR",
+        summary: "Resumen",
+        transcript: "Pasó un camión",
+        themes: ["Terror"],
+      },
       { ...bonus, storyCountry: "MX", senderCountry: "AR", title: "OTRO PAÍS", themes: ["Terror"] },
       { ...bonus, storyCountry: null, senderCountry: "AR", title: "SIN PAÍS", themes: ["Terror"] },
     ],
   });
 
   const filters = {
+    query: "camion",
     country: "AR",
     themes: ["Humor", "Terror"],
     type: "bonus",
@@ -173,4 +187,34 @@ test("combina país y tipo con cualquiera de las Temáticas antes de contar y pa
     episodeCount: 0,
   });
   assert.deepEqual((await listStoryCountries(db)).sort(), ["AR", "MX"]);
+});
+
+test("busca prefijos sin tildes en títulos, resúmenes y transcripciones de cada Historia", async () => {
+  await saveEpisode(db, {
+    status: "processed",
+    videoId: "nuevo000000",
+    number: 307,
+    title: "CUMPLEAÑOS",
+    needsTitleReview: false,
+    stories: [
+      {
+        ...story,
+        type: "principal",
+        title: "CASAMIENTO",
+        summary: "Fiesta familiar",
+        transcript: "Un camión rojo",
+        themes: ["Familia"],
+      },
+      { ...story, type: "bonus", title: "BONUS", summary: "Dos casamientos", themes: ["Humor"] },
+    ],
+  });
+
+  const titles = async (query: string) =>
+    (await listStoriesPage(db, 1, 12, { query })).map(({ title }) => title);
+  assert.deepEqual(await titles("casamient"), ["CASAMIENTO", "BONUS"]);
+  assert.deepEqual(await titles("CAMION"), ["CASAMIENTO"]);
+  assert.deepEqual(await titles("casa, camio\u0301n"), ["CASAMIENTO"]);
+  assert.deepEqual(await titles("camion OR casamiento"), []);
+  assert.deepEqual(await titles('!"*'), []);
+  assert.deepEqual(await titles("cumpleaños"), []);
 });

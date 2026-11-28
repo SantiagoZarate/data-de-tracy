@@ -11,6 +11,7 @@ import {
 } from "@/src/db/queries.ts";
 import { db } from "@/src/db/server.ts";
 import type { StoryFilters, StorySort } from "@/src/story-metadata.ts";
+import { AnimatedStoryGrid } from "@/src/ui/animated-story-grid.tsx";
 import { CountryFlag, countryNames } from "@/src/ui/country-flag.tsx";
 import { StoryFilterForm } from "@/src/ui/story-filter-form.tsx";
 import { StoryPagination } from "@/src/ui/story-pagination.tsx";
@@ -67,39 +68,39 @@ async function StoryGrid({ searchParams }: Pick<PageProps<"/">, "searchParams">)
   }
 
   const [{ storyCount, episodeCount }, countries] = await Promise.all([
-    getCounts(filters),
+    filters.query ? getCatalogCounts(db, filters) : getCounts(filters),
     getCountries(),
   ]);
   const pageCount = Math.max(1, Math.ceil(storyCount / PAGE_SIZE));
   if (page > pageCount) redirect(storyPageHref(pageCount, filters, sort));
 
-  const stories = storyCount > 0 ? await getStories(page, filters, sort) : [];
+  const stories =
+    storyCount === 0
+      ? []
+      : filters.query
+        ? await listStoriesPage(db, page, PAGE_SIZE, filters, sort)
+        : await getStories(page, filters, sort);
   if (stories.length === 0 && page > 1) redirect(firstPageHref);
 
   const summary = `${storyCount} ${storyCount === 1 ? "Historia" : "Historias"} de ${episodeCount} ${episodeCount === 1 ? "Episodio" : "Episodios"}.`;
   const emptyMessage =
     storyPageHref(1, filters) === "/"
       ? "Todavía no hay Historias en la base."
-      : "No hay Historias que coincidan con estos filtros.";
+      : filters.query
+        ? "No hay Historias que coincidan con esta búsqueda."
+        : "No hay Historias que coincidan con estos filtros.";
 
   return (
     <>
       <StoryFilterForm filters={filters} countries={countries} page={page} sort={sort} />
       <output className="metadata mb-5 block">{stories.length > 0 ? summary : emptyMessage}</output>
-      {stories.length > 0 && (
-        <>
-          <ol
-            start={(page - 1) * PAGE_SIZE + 1}
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            {stories.map((story) => (
-              <StoryCard key={story.id} story={story} />
-            ))}
-          </ol>
-          {pageCount > 1 && (
-            <StoryPagination page={page} pageCount={pageCount} filters={filters} sort={sort} />
-          )}
-        </>
+      <AnimatedStoryGrid
+        criteriaHref={firstPageHref}
+        start={(page - 1) * PAGE_SIZE + 1}
+        items={stories.map((story) => ({ id: story.id, content: <StoryCard story={story} /> }))}
+      />
+      {stories.length > 0 && pageCount > 1 && (
+        <StoryPagination page={page} pageCount={pageCount} filters={filters} sort={sort} />
       )}
     </>
   );
@@ -126,52 +127,50 @@ function StoryCard({ story }: { story: CatalogStory }) {
   const titleId = `story-title-${story.id}`;
 
   return (
-    <li>
-      <TransitionLink
-        href={`/historias/${story.id}`}
-        aria-labelledby={titleId}
-        className="card-link group flex h-full flex-col p-3"
-      >
-        <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
-          <Image
-            src={`https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`}
-            alt=""
-            width={320}
-            height={180}
-            unoptimized
-            className="h-full w-full object-cover"
-          />
-          {(story.storyCountry || story.senderCountry) && (
-            <div className="absolute bottom-2 left-2 flex gap-1.5">
-              {story.storyCountry && <Flag icon="📍" label="Ocurre en" code={story.storyCountry} />}
-              {story.senderCountry && (
-                <Flag icon="✉️" label="Enviada desde" code={story.senderCountry} />
-              )}
-            </div>
-          )}
-          {story.type === "bonus" && (
-            <span className="badge absolute top-2 right-2" data-variant="highlight">
-              Bonus Track
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-1 flex-col gap-3 px-1 pt-4 pb-1">
-          <div>
-            <h2 id={titleId} className="text-sm font-semibold group-hover:underline">
-              {story.title}
-            </h2>
-            <p className="metadata mt-1 text-xs">Episodio #{number}</p>
+    <TransitionLink
+      href={`/historias/${story.id}`}
+      aria-labelledby={titleId}
+      className="card-link flex h-full flex-col p-3"
+    >
+      <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+        <Image
+          src={`https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`}
+          alt=""
+          width={320}
+          height={180}
+          unoptimized
+          className="h-full w-full object-cover"
+        />
+        {(story.storyCountry || story.senderCountry) && (
+          <div className="absolute bottom-2 left-2 flex gap-1.5">
+            {story.storyCountry && <Flag icon="📍" label="Ocurre en" code={story.storyCountry} />}
+            {story.senderCountry && (
+              <Flag icon="✉️" label="Enviada desde" code={story.senderCountry} />
+            )}
           </div>
-          <ul aria-label="Temáticas" className="mt-auto flex flex-wrap gap-1.5">
-            {story.themes.map(({ theme }) => (
-              <li key={theme} className="badge">
-                {theme}
-              </li>
-            ))}
-          </ul>
+        )}
+        {story.type === "bonus" && (
+          <span className="badge absolute top-2 right-2" data-variant="highlight">
+            Bonus Track
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 px-1 pt-4 pb-1">
+        <div>
+          <h2 id={titleId} className="text-sm font-semibold">
+            {story.title}
+          </h2>
+          <p className="metadata mt-1 text-xs">Episodio #{number}</p>
         </div>
-      </TransitionLink>
-    </li>
+        <ul aria-label="Temáticas" className="mt-auto flex flex-wrap gap-1.5">
+          {story.themes.map(({ theme }) => (
+            <li key={theme} className="badge">
+              {theme}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </TransitionLink>
   );
 }

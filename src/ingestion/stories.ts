@@ -44,6 +44,21 @@ export interface TranscriptSegment {
   startSeconds: number;
 }
 
+export function sliceStoryTranscript(
+  segments: TranscriptSegment[],
+  { startSeconds, endSeconds }: Pick<Story, "startSeconds" | "endSeconds">,
+): string {
+  // El modelo ve timestamps truncados a segundos, incluido el del último segmento.
+  return segments
+    .filter((segment) => {
+      const second = Math.floor(segment.startSeconds);
+      return second >= startSeconds && second <= endSeconds;
+    })
+    .map(({ text }) => text)
+    .join(" ")
+    .trim();
+}
+
 function formatTime(seconds: number): string {
   const s = Math.floor(seconds);
   const h = Math.floor(s / 3600);

@@ -1,6 +1,6 @@
 import type { LanguageModel } from "ai";
 import type { EpisodeDecision } from "./jev.ts";
-import { splitStories, type Story } from "./stories.ts";
+import { sliceStoryTranscript, splitStories, type Story } from "./stories.ts";
 import { getTranscript, getVideoTitle } from "./supadata.ts";
 import { extractFreeformTitle, parseEpisodeTitle, type EpisodeTitle } from "./title.ts";
 
@@ -20,7 +20,8 @@ type KnownEpisode = EpisodeTitle & {
   needsTitleReview: boolean;
 };
 
-type ProcessedEpisode = KnownEpisode & { status: "processed"; stories: Story[] };
+type ProcessedStory = Story & { transcript?: string };
+type ProcessedEpisode = KnownEpisode & { status: "processed"; stories: ProcessedStory[] };
 
 export type ProcessingResult =
   | ProcessedEpisode
@@ -78,7 +79,17 @@ export async function processKnownEpisode(
     segments,
   });
 
-  return { status: "processed", videoId, number, title, needsTitleReview, stories };
+  return {
+    status: "processed",
+    videoId,
+    number,
+    title,
+    needsTitleReview,
+    stories: stories.map((story) => ({
+      ...story,
+      transcript: sliceStoryTranscript(segments, story),
+    })),
+  };
 }
 
 /** Si el clasificador falta o falla, el video va a revisión: nunca se lo trata como Episodio. */

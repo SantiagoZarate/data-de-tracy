@@ -8,6 +8,7 @@ import { getStoryById, listStoriesWithSharedThemes } from "@/src/db/queries.ts";
 import { db } from "@/src/db/server.ts";
 import { CountryFlag, countryNames } from "@/src/ui/country-flag.tsx";
 import { StoryMentions } from "@/src/ui/story-mentions.tsx";
+import { storyPageHref } from "@/src/ui/story-page-url.ts";
 import { StoryRatingPreview } from "@/src/ui/story-rating-preview.tsx";
 import { StoryVideo } from "@/src/ui/story-video.tsx";
 import { ThemeSwitcher } from "@/src/ui/theme-switcher.tsx";
@@ -110,8 +111,13 @@ async function StoryDetail({ params }: Pick<PageProps<"/historias/[id]">, "param
               <h2 className="mb-2 text-sm font-medium">Temáticas</h2>
               <ul className="flex flex-wrap gap-1.5">
                 {story.themes.map(({ theme }) => (
-                  <li key={theme} className="badge">
-                    {theme}
+                  <li key={theme}>
+                    <TransitionLink
+                      href={storyPageHref(1, { themes: [theme] })}
+                      className="badge text-foreground no-underline hover:bg-foreground/15 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring"
+                    >
+                      {theme}
+                    </TransitionLink>
                   </li>
                 ))}
               </ul>
